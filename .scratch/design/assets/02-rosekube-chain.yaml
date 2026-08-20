@@ -1,0 +1,52 @@
+# The rosekube chain in the shape settled by ticket 02 (The shape of the tree).
+# Plugin names, kind strings, and field names are ILLUSTRATIVE — their
+# vocabularies belong to later tickets (The plugin contract, Where curation
+# lives). Confirmed as reading right by Markus, 2026-08-20.
+#
+# Every edge below is inferred (each consumed kind has exactly one provider).
+# Adding a second cluster makes `infra/*` consumers ambiguous → hard error
+# until they carry an explicit `use:`.
+
+nodes:
+  bootstrap:                     # root (zero inputs)
+    op: bootstrap-mise           # default bootstrap: mise per research ticket 03
+    config: { version: 2025.8.1 }
+    # -> claim kind: bootstrap
+
+  tools/opentofu:
+    op: mise-install
+    config: { package: opentofu, version: 1.8.2 }
+    # consumes: bootstrap
+    # -> claim kind: tool  {tool: opentofu, version: 1.8.2, platform: linux-64}
+  tools/talosctl: { op: mise-install, config: { package: talosctl, version: v1.8.0 } }
+  tools/flux:     { op: mise-install, config: { package: flux, version: 2.4.0 } }
+
+  sources/cluster-values:        # root: pure source node importing user values
+    op: import-values
+    config: { file: cluster.yaml }        # name, IPs, sizing, git url
+    # -> claim kind: config  {content: bafy...}
+  sources/secrets:
+    op: import-sops
+    config: { file: secrets.sops.yaml }
+    # -> claim kind: secrets {content: bafy...}   # ciphertext; ticket 09
+
+  infra/staging:
+    op: tofu-apply               # effectful
+    config: { module: talos-proxmox }     # module origin -> Where curation lives
+    # consumes: tool(opentofu), config, secrets
+    # -> claim kind: talos-cluster {name: staging, endpoint: ..., nodes: [...]}
+
+  sources/flux-tree:
+    op: render-flux-tree         # pure — today's copier render of the flux/ layout
+    # consumes: config           (+ catalog content -> Where curation lives)
+    # -> claim kind: file-tree {content: bafy...}
+
+  k8s/flux-bootstrap:
+    op: flux-bootstrap           # effectful
+    # consumes: talos-cluster, tool(flux), config, secrets
+    # -> claim kind: gitops {cluster: staging, repo: ssh://...}
+
+  k8s/push-config:
+    op: git-push                 # effectful
+    # consumes: file-tree, gitops
+    # -> claim kind: gitops-synced {repo, commit, tree: bafy...}

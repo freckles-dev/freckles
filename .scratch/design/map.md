@@ -50,6 +50,11 @@ precise enough to seed the formal spec and a first implementation.
   ADR 0001) + unhashed annotations in one uniform envelope; success-only;
   DAG-CBOR value model; mandatory kind; trust = act without re-checking the
   world; claims travel, annotations don't, realization bridges.
+- [The shape of the tree](issues/02-the-shape-of-the-tree.md) — a DAG of
+  named nodes ("tree" retired); available environment = transitive claim
+  merge, resolution-time only; identity = declared-consumed claims
+  (ADR 0002); hybrid edges (explicit wins, inference fills, ambiguity is a
+  hard error); everything is a node — sources are pure roots.
 
 ## Not yet specified
 

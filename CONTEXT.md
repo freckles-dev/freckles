@@ -9,9 +9,29 @@ marked *(provisional)* may be renamed there.
 ## Language
 
 **Operation** *(provisional)*:
-A pluggable unit of work that consumes outcomes and its own configuration and
+A pluggable unit of work that declares the claim kinds it consumes and
 produces one outcome on success. Declares itself pure or effectful.
 _Avoid_: transformer, task (candidate names, undecided), stage
+
+**Node**:
+A named element of the DAG: a stable, path-like human name binding an
+operation, its configuration, and input edges. Names are the stable
+identity across config edits; hashes are the versioned identity beneath.
+
+**Available environment**:
+The merged claims of a node's transitive predecessors, keyed by kind. A
+resolution-time concept for edge inference and checks; never visible to an
+operation at run time.
+
+**Effective inputs**:
+The claims matching an operation's declared consumed kinds — the only
+inputs entering the node's provenance record and cache key, and exactly
+what the operation receives at run time.
+
+**Source node**:
+A root node whose pure operation imports external content (files,
+directories, encrypted values) into the store; its claim references the
+imported bytes.
 
 **Outcome**:
 The value a successful operation returns: a structured description of what

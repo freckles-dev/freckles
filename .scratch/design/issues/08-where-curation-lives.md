@@ -27,5 +27,11 @@ To resolve:
   strategy — what validates the design doc instead (presumably The rosekube
   chain on paper)?
 
+Routed here by The shape of the tree (resolved): in the chain sketch
+(assets/02-rosekube-chain.yaml), `infra/staging` names a tofu **module**
+(`talos-proxmox`) and `sources/flux-tree` renders catalog **content** —
+where does that curated content come from and how is it pinned/addressed?
+This is the concrete form of the curation question in the DAG model.
+
 Run /grilling and /domain-modeling. Grill against vision.md §2–3, §8, open
 question 2.

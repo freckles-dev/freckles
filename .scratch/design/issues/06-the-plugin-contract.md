@@ -28,5 +28,14 @@ To resolve:
 - How a plugin declares what it *needs* from its parent environment (tools on
   PATH at pinned versions?) — the userspace-first requirement lands here.
 
+Routed here by The shape of the tree (resolved): the **consumption
+selector** mechanism — declaring consumed kinds needs more than the bare
+kind (`tool(opentofu)` must match kind `tool` *and* `tool: opentofu`);
+define the selector form. Also: the runner **enforces** ADR 0002 — an
+operation receives exactly its effective inputs at run time, never the
+available environment; the contract must specify how (working-dir/env
+isolation, what is materialized for the plugin). And the door left open in
+02: a possible future *explicit* multi-consume declaration (aggregators).
+
 Run /grilling and /domain-modeling. Grill against vision.md §3 (transformer),
 §7 (toolchain provisioning), open question 3.
