@@ -61,6 +61,12 @@ precise enough to seed the formal spec and a first implementation.
   audit, working copies out; refs = only mutable state; the resolution
   document replaces the lockfile; per-user sqlite store, refs namespaced
   per configuration (caveat: revisit if per-config stores earn a use case).
+- [The plugin contract](issues/06-the-plugin-contract.md) — plugins are
+  process-protocol executables acquired as claims (ADR 0004); minimal
+  built-in set with fetch-verify as the only true root; kind+equality
+  selectors; runner physically enforces visibility, purity is contract;
+  one statically-declared produced kind (fields by curated convention);
+  bootstrap-mise default with bootstrap-pixi first-class in parallel.
 
 ## Not yet specified
 

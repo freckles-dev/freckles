@@ -28,6 +28,13 @@ The claims matching an operation's declared consumed kinds — the only
 inputs entering the node's provenance record and cache key, and exactly
 what the operation receives at run time.
 
+**Plugin**:
+The content-addressed implementation an operation runs: a claim of kind
+plugin whose content is a manifest (name, version, produced kind, consumed
+selectors, effect, platforms, entrypoint) plus an executable payload.
+Invoked as a process — request document on stdin, outcome or error on
+stdout. A minimal built-in set ships with freckles itself.
+
 **Source node**:
 A root node whose pure operation imports external content (files,
 directories, encrypted values) into the store; its claim references the

@@ -33,5 +33,10 @@ Routed here by The shape of the tree (resolved): in the chain sketch
 where does that curated content come from and how is it pinned/addressed?
 This is the concrete form of the curation question in the DAG model.
 
+Also routed from The plugin contract (resolved): the **kind vocabulary**
+and the **per-kind claim field conventions** (that `tool` claims carry
+`tool`/`version`/`platform` — everything selectors and consumers rely on)
+are curation policy — decide where they live and how they're governed.
+
 Run /grilling and /domain-modeling. Grill against vision.md §2–3, §8, open
 question 2.

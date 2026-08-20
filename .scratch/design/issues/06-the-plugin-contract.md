@@ -1,7 +1,7 @@
 # The plugin contract
 
 Type: grilling
-Status: claimed
+Status: resolved
 Blocked by: 01, 02
 
 ## Question
@@ -36,6 +36,53 @@ operation receives exactly its effective inputs at run time, never the
 available environment; the contract must specify how (working-dir/env
 isolation, what is materialized for the plugin). And the door left open in
 02: a possible future *explicit* multi-consume declaration (aggregators).
+
+## Answer
+
+Resolved 2026-08-20 over two grilling rounds; confirmed by Markus.
+Assets: [ADR 0004](../../../docs/adr/0004-plugins-are-process-claims.md),
+[wire-protocol strawman](../assets/06-wire-protocol.yaml), glossary in
+[CONTEXT.md](../../../CONTEXT.md).
+
+1. **The process protocol is the contract**: a plugin is an executable —
+   request document on stdin (effective inputs as claim+annotations pairs,
+   node config, workspace), outcome document or structured error on stdout,
+   exit code for success/failure. A Python SDK is sugar, never contract.
+   One generic `command` adapter wraps arbitrary commands.
+2. **Plugins are claims**: acquired, pinned, and hashed like tools —
+   `kind: plugin`, content = manifest + executable payload in the CAS;
+   provenance pins the plugin claim CID. A minimal **built-in set** ships
+   with freckles itself (its version enters provenance for built-in-produced
+   outcomes): `import-values`, `import-file-tree`, `import-sops`,
+   `fetch-verify`, `command`.
+3. **Selectors**: kind + flat field-equality constraints, plugin-declared,
+   node-augmentable (`use:` breaks ambiguity). Revisit only if a real
+   catalog case defeats it.
+4. **Enforcement split**: the runner *physically* enforces visibility
+   (ADR 0002) — isolated workspace, scrubbed environment, consumed tool
+   claims materialized onto a constructed PATH, content claims as files;
+   the plugin assembles nothing itself. Purity (determinism, no undeclared
+   network) is *contract*, with an optional run-twice determinism check as
+   catalog CI. No kernel sandbox in v1 (vision doc stance carried).
+5. **Initial set**: built-ins above, plus standard plugins
+   `bootstrap-mise` (default), **`bootstrap-pixi` — first-class in
+   parallel, per Markus**, `mise-install`, `uv-python`, `copier`.
+   Catalog-level plugins (`tofu-apply`, `flux-bootstrap`, `git-push`) come
+   with curation. The only true root is `fetch-verify`.
+6. **Produced kind**: exactly one, statically declared in the manifest —
+   what makes resolution-time edge inference possible. Claim fields beyond
+   `kind` are convention; per-kind field conventions are curation policy
+   (→ Where curation lives). Markus caveat recorded: "can't foresee
+   whether this will be enough — good place to start."
+7. **Manifest**: `name`, `version`, `produces`, `consumes`, `effect:
+   pure|effectful`, `platforms`, `entrypoint`. Deliberately absent: tool
+   dependencies (consume tool claims instead) and config schemas (the
+   plugin's own business in v1).
+8. **Wire shape** adopted as the design doc's illustrative contract (asset
+   above); field names non-normative until the doc is written.
+
+Unchanged: the aggregator door stays a named future extension (per The
+shape of the tree); effectful checkpoint UX belongs to Effects and day-2.
 
 Run /grilling and /domain-modeling. Grill against vision.md §3 (transformer),
 §7 (toolchain provisioning), open question 3.

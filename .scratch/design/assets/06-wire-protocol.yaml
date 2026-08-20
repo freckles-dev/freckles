@@ -1,0 +1,30 @@
+# Wire protocol strawman adopted in ticket 06 (The plugin contract) as the
+# design doc's ILLUSTRATIVE contract shape — field names non-normative until
+# the design doc is written. Confirmed by Markus, 2026-08-20.
+
+# ---- stdin -> plugin: the request ----
+request:
+  schema: 1
+  node: { name: infra/staging, config: { module: talos-proxmox } }
+  inputs:                       # effective inputs only (ADR 0002, enforced)
+    - cid: bafy...tool-claim
+      claim: { kind: tool, tool: opentofu, version: 1.8.2, platform: linux-64 }
+      annotations: { path: /home/u/.freckles/envs/3f9a.../bin/tofu }
+    - cid: bafy...config-claim
+      claim: { kind: config, content: bafy...tree }
+      annotations: { path: /home/u/.freckles/work/1f2e.../inputs/config }
+  workspace:
+    dir: /home/u/.freckles/work/1f2e...
+    path: [/home/u/.freckles/envs/3f9a.../bin]   # assembled by the runner
+                                                 # from consumed tool claims
+
+# ---- stdout <- plugin, exit 0: the outcome ----
+success:
+  schema: 1
+  claim: { kind: talos-cluster, name: staging, endpoint: "https://10.0.50.50:6443" }
+  annotations: { tf_workdir: /home/u/.freckles/work/1f2e.../tf }
+
+# ---- stdout <- plugin, exit != 0: structured error (audit log only) ----
+failure:
+  schema: 1
+  error: { message: "tofu apply failed", detail: "..." }
