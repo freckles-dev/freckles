@@ -73,18 +73,24 @@ precise enough to seed the formal spec and a first implementation.
   report-orphans + manual in v1; drift = explicit verify → local distrust
   mark → stale; the audit log succeeds the journal (no history refs);
   claims-only consumption — annotations private to the running machine.
+- [Where curation lives](issues/08-where-curation-lives.md) — curation is
+  deferred with precise extension points: content arrives as git-imported
+  claims (`import-git`); core reserves only its built-in kinds, domain
+  kinds/conventions are governed catalog content; templates (when they
+  come) expand into the explicit DAG, dynamic DAGs rejected; full catalog
+  design is a follow-up effort paired with rosekube migration.
 
 ## Not yet specified
 
 - Multi-machine sharing — whether/how stores sync between machines; what the
   IPFS backend is actually *for* (publication? distribution? backup?).
-- Rosekube migration path — how the existing Copier template and generated
-  repos map onto the first freckles configuration; likely the next effort
-  after the design doc.
 
 ## Out of scope
 
 - Implementing freckles itself — this effort ends at the design doc.
-- Executing a rosekube migration — only sketched enough to validate the design.
+- Full catalog/template design (layering semantics, frecklet format, policy
+  composition) and the rosekube migration path — one follow-up effort;
+  extension points named in
+  [Where curation lives](issues/08-where-curation-lives.md).
 - The multi-document formal spec set (vision.md §13) — follows the design doc
   as its own effort.

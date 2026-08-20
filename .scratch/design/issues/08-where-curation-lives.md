@@ -1,7 +1,7 @@
 # Where curation lives
 
 Type: grilling
-Status: claimed
+Status: resolved
 Blocked by: 02
 
 ## Question
@@ -37,6 +37,48 @@ Also routed from The plugin contract (resolved): the **kind vocabulary**
 and the **per-kind claim field conventions** (that `tool` claims carry
 `tool`/`version`/`platform` — everything selectors and consumers rely on)
 are curation policy — decide where they live and how they're governed.
+
+## Answer
+
+Resolved 2026-08-20 in one grilling round; all four points explicitly
+adopted by Markus.
+
+1. **Curation is deferred, with precise extension points.** The design doc
+   specifies the core (explicit DAG) as complete and standalone, names
+   exactly where curation plugs in (points 2–4 below), and carries a short
+   *non-normative* "curation direction" section. **Full catalog design —
+   layering semantics, the frecklet/template format, policy composition —
+   is its own follow-up effort**, naturally paired with rosekube
+   migration, and is now out of scope on this map. This completes the bet
+   The shape of the tree made when it left curation as the
+   generator-of-explicit-config extension point, and it follows the
+   vision doc's own validation principle: template semantics get
+   specified against a real catalog, not before one exists.
+2. **Catalog content arrives as claims**: standard plugin `import-git` — a
+   source-style pure operation producing `kind: file-tree` claims from a
+   git repo at a configured ref, with the resolved commit in the claim.
+   Content pinning is ordinary claim mechanics (the vision doc's
+   "catalogs are git repos pinned via lockfile" survives as git-imported
+   claims pinned via the resolution document). The standard plugin set
+   grows by `import-git`.
+3. **Conventions governance**: freckles core reserves and documents only
+   the kinds its built-ins and standard plugins need (`bootstrap`, `tool`,
+   `plugin`, `file-tree`, `config`, `secrets`; final list in the design
+   doc). All domain kinds (`talos-cluster`, …) and per-kind field
+   conventions live in a **conventions document that is itself catalog
+   content** — imported, versioned, pinned, governed with the catalog.
+   The core stays domain-agnostic.
+4. **The sketch's endorsed direction**: **expansion** — templates
+   ("frecklets") expand into ordinary explicit nodes at
+   authoring/resolution time, so the resolution document always holds the
+   expanded, inspectable, diffable DAG and the core never learns about
+   templates. Dynamic DAGs (nodes producing nodes) are explicitly
+   rejected as the complexity cliff. External generation (copier
+   rendering a freckles config) is named as the zero-cost interim that
+   works today.
+
+Validation split: The rosekube chain on paper validates the design doc;
+the first real catalog release validates the follow-up effort.
 
 Run /grilling and /domain-modeling. Grill against vision.md §2–3, §8, open
 question 2.
