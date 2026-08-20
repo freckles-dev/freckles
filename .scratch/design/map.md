@@ -36,6 +36,15 @@ precise enough to seed the formal spec and a first implementation.
 
 <!-- one line per closed ticket: gist + link -->
 
+- [Bootstrap tool evaluation](issues/03-bootstrap-tool-evaluation.md) — mise
+  covers all 8 devops tools via upstream binaries and is recommended default;
+  pixi peer for solved stacks; bootstrap is swappable behind a common
+  contract, rooted in a tiny fetch+verify primitive.
+- [Content-addressable store survey](issues/04-content-addressable-store-survey.md)
+  — CIDv1 + sha2-256 + spec-strict DAG-CBOR gives free IPFS address
+  compatibility for documents (not file trees); minimal backend =
+  put/get/has/cids + refs-as-GC-roots; sqlite comfortable as default.
+
 ## Not yet specified
 
 - Caching / currency semantics — when may a stored outcome be trusted as
