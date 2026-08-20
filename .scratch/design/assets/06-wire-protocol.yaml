@@ -17,6 +17,12 @@ request:
     dir: /home/u/.freckles/work/1f2e...
     path: [/home/u/.freckles/envs/3f9a.../bin]   # assembled by the runner
                                                  # from consumed tool claims
+  prior:                        # added by ticket 07: the node's previous
+                                # outcome — present only when one exists and
+                                # ONLY for effectful plugins (pure never see it)
+    cid: bafy...old-cluster-claim
+    claim: { kind: talos-cluster, name: staging, endpoint: "https://10.0.50.50:6443" }
+    annotations: { tf_workdir: /home/u/.freckles/work/0a1b.../tf }
 
 # ---- stdout <- plugin, exit 0: the outcome ----
 success:

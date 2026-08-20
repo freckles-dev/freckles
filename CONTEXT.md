@@ -56,12 +56,23 @@ mandatory kind.
 **Annotation**:
 The unhashed part of an outcome: non-identity realization facts (local
 paths, timestamps, hosts) recording where and when the claim is realized on
-this machine. Annotations do not travel with the claim.
+this machine. Annotations do not travel with the claim and are private to
+the machine that runs the node.
 
 **Realization**:
 Making a trusted claim usable on the local machine, producing its
-annotations. Pure claims realize by local re-derivation; realization of
-effectful claims is an open question.
+annotations. Pure claims realize by local re-derivation; effectful claims
+need no realization to be consumed — their claim fields suffice, and only
+re-running their own node is machine-bound.
+
+**Stale**:
+A node whose current claim was not produced by its current derivation —
+because an input changed or the claim was distrusted. Healed by re-running:
+automatically for pure nodes, via checkpoint for effectful ones.
+
+**Checkpoint**:
+An explicit, per-node confirmed run of an effectful node. Effectful nodes
+never run implicitly; auto-confirmation is a deliberate opt-in.
 
 **Provenance record**:
 A separate content-addressed record of one derivation: which operation
@@ -96,5 +107,8 @@ until explicitly contradicted. Verification is an explicit operation, never
 background polling.
 
 **Audit log**:
-The record of what operations did (logs, exit codes, durations, failures).
-Never consumed by downstream operations.
+The append-only record of what operations did (runs with their derivations
+and claim CIDs, logs, exit codes, durations, failures). The journal's
+successor: it answers "what was deployed when". Never consumed by
+downstream operations.
+_Avoid_: journal

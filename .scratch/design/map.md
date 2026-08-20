@@ -67,10 +67,15 @@ precise enough to seed the formal spec and a first implementation.
   selectors; runner physically enforces visibility, purity is contract;
   one statically-declared produced kind (fields by curated convention);
   bootstrap-mise default with bootstrap-pixi first-class in parallel.
+- [Effects and day-2](issues/07-effects-and-day-2.md) — day-2 loop:
+  re-resolve → stale set → heal (pure auto, effectful per-node
+  checkpoints); effectful re-runs receive `prior:`; teardown is
+  report-orphans + manual in v1; drift = explicit verify → local distrust
+  mark → stale; the audit log succeeds the journal (no history refs);
+  claims-only consumption — annotations private to the running machine.
 
 ## Not yet specified
 
-- Day-2 UX — diffing outcomes, selective re-run, guarding destructive changes.
 - Multi-machine sharing — whether/how stores sync between machines; what the
   IPFS backend is actually *for* (publication? distribution? backup?).
 - Rosekube migration path — how the existing Copier template and generated

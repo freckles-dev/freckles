@@ -1,7 +1,7 @@
 # Effects and day-2
 
 Type: grilling
-Status: claimed
+Status: resolved
 Blocked by: 01, 02
 
 ## Question
@@ -32,6 +32,53 @@ This ticket owns the mechanics on top of that.
   chains (`cfg/<config>/nodes/<node>/history`, old resolution documents),
   and is that retained history the journal's successor — or is the audit
   log alone enough?
+
+## Answer
+
+Resolved 2026-08-20 in one grilling round; all seven points explicitly
+adopted by Markus. Assets: glossary updates in
+[CONTEXT.md](../../../CONTEXT.md), `prior:` added to the
+[wire-protocol asset](../assets/06-wire-protocol.yaml).
+
+1. **The day-2 loop**: edit config → re-resolve (new resolution document,
+   pure, cheap) → **stale set** = nodes whose current claim was not
+   produced by their new derivation (derivation-index lookup) → present by
+   node name → heal: pure nodes re-derive automatically, effectful nodes
+   are checkpoints → refs advance, superseded claims become GC-fodder.
+   "Is the deployment current?" = "is the stale set empty?".
+2. **`prior:`**: the request document gains the node's previous outcome
+   (claim + annotations) — present only when one exists and only for
+   effectful plugins; pure plugins never see it. Idempotency contract:
+   re-run with identical effective inputs and prior must be
+   side-effect-safe and should be a no-op. Convergence with the world is
+   the tool's business; freckles delivers continuity.
+3. **Checkpoints**: effectful nodes never run implicitly — per-node
+   explicit confirmation, with deliberate opt-in auto-confirm for
+   automation. The prompt names the node, the claim being superseded, and
+   privilege needs via a new manifest flag `requires_privilege`. Never a
+   silent sudo.
+4. **Teardown, v1**: node removal orphans its effectful claim; freckles
+   *reports* orphans, cleanup is the operator's job with the underlying
+   tools. A future optional `destroy` manifest entrypoint is named as the
+   extension point, deliberately unspecified.
+5. **Drift**: optional `verify` manifest entrypoint; `freckles verify` is
+   explicit, never polled. Contradiction marks the claim **distrusted** in
+   the local annotations index (claims stay immutable) — which makes the
+   node stale through the one existing staleness mechanism; re-running
+   heals.
+6. **The journal's successor is the audit log**: append-only, records every
+   run with derivation and claim CIDs, so "what was deployed when" stays
+   textually answerable even after blocks are GC'd. No history refs in v1;
+   bounded history refs (last N resolution documents) named as a cheap
+   later option.
+7. **Claims-only consumption**: consuming any claim requires only the
+   claim — a node's annotations are private to the machine that runs that
+   node. Consequence stated honestly: re-running an effectful node is
+   bound to the machine holding its annotations; moving that seat means
+   moving tool state, out of scope alongside multi-machine sync.
+
+Manifest grew two optional fields here: `requires_privilege`, `verify`
+(plus `destroy` as a named-future entry).
 - Confirmation: the vision doc made every effectful stage an explicit
   user-confirmed checkpoint — does that survive unchanged in the tree model?
 - Idempotency expectations on effectful plugins: is "re-running with
