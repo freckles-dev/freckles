@@ -1,7 +1,7 @@
 # Storage and addressing
 
 Type: grilling
-Status: open
+Status: claimed
 Blocked by: 01, 04
 
 ## Question
