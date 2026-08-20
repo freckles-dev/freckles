@@ -1,7 +1,8 @@
 # Content-addressable store survey
 
 Type: research
-Status: open
+Status: claimed
+Findings: branch `research/cas-survey`, file `docs/research/cas-survey.md` (background agent fired 2026-08-20)
 
 ## Question
 

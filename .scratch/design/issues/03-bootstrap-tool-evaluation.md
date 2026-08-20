@@ -1,7 +1,8 @@
 # Bootstrap tool evaluation
 
 Type: research
-Status: open
+Status: claimed
+Findings: branch `research/bootstrap-tools`, file `docs/research/bootstrap-tools.md` (background agent fired 2026-08-20)
 
 ## Question
 
