@@ -44,14 +44,14 @@ precise enough to seed the formal spec and a first implementation.
   — CIDv1 + sha2-256 + spec-strict DAG-CBOR gives free IPFS address
   compatibility for documents (not file trees); minimal backend =
   put/get/has/cids + refs-as-GC-roots; sqlite comfortable as default.
+- [What is an outcome?](issues/01-what-is-an-outcome.md) — a present-tense
+  description of what now exists: hashed claim (extensional address,
+  ADR 0001) + unhashed annotations in one uniform envelope; success-only;
+  DAG-CBOR value model; mandatory kind; trust = act without re-checking the
+  world; claims travel, annotations don't, realization bridges.
 
 ## Not yet specified
 
-- Caching / currency semantics — when may a stored outcome be trusted as
-  current without re-running its node? Depends on the outcome and effects
-  models.
-- The journal's fate — what becomes of the vision doc's append-only execution
-  journal once effectful outputs are first-class hashed values.
 - Day-2 UX — diffing outcomes, selective re-run, guarding destructive changes.
 - Multi-machine sharing — whether/how stores sync between machines; what the
   IPFS backend is actually *for* (publication? distribution? backup?).

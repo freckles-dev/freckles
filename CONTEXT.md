@@ -21,14 +21,20 @@ Failures never mint outcomes.
 _Avoid_: artifact, output, result
 
 **Claim**:
-The hashed, machine-independent part of an outcome: what is asserted to be
-true. The claim's content hash is the outcome's address. May reference stored
-byte content by content hash.
+The hashed part of an outcome: identity-defining, machine-independent
+assertions about the world. The claim's content hash is the outcome's
+address. May reference stored byte content by content hash. Carries a
+mandatory kind.
 
 **Annotation**:
-The unhashed part of an outcome: machine- or time-incidental facts (local
-paths, timestamps, hosts) recording where and when the claim is realized
-here.
+The unhashed part of an outcome: non-identity realization facts (local
+paths, timestamps, hosts) recording where and when the claim is realized on
+this machine. Annotations do not travel with the claim.
+
+**Realization**:
+Making a trusted claim usable on the local machine, producing its
+annotations. Pure claims realize by local re-derivation; realization of
+effectful claims is an open question.
 
 **Provenance record**:
 A separate content-addressed record of one derivation: which operation
