@@ -1,7 +1,7 @@
 # Where curation lives
 
 Type: grilling
-Status: open
+Status: claimed
 Blocked by: 02
 
 ## Question
