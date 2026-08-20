@@ -55,6 +55,12 @@ precise enough to seed the formal spec and a first implementation.
   merge, resolution-time only; identity = declared-consumed claims
   (ADR 0002); hybrid edges (explicit wins, inference fills, ambiguity is a
   hard error); everything is a node — sources are pure roots.
+- [Storage and addressing](issues/05-storage-and-addressing.md) — CAS survey
+  adopted wholesale: CIDv1/DAG-CBOR native everywhere (ADR 0003); claims,
+  provenance, imported content, resolution documents in — annotations,
+  audit, working copies out; refs = only mutable state; the resolution
+  document replaces the lockfile; per-user sqlite store, refs namespaced
+  per configuration (caveat: revisit if per-config stores earn a use case).
 
 ## Not yet specified
 

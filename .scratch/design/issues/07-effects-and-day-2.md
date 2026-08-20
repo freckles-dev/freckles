@@ -26,6 +26,12 @@ This ticket owns the mechanics on top of that.
   what for effectful claims (which cannot be re-derived)? What does the
   derivation index look like, and when may a cached outcome be reused as
   current without re-running?
+- History retention (routed from Storage and addressing, resolved): refs
+  point only at *current* claims and the *current* resolution document, and
+  unreferenced blocks are GC-collectable after grace. So: are there history
+  chains (`cfg/<config>/nodes/<node>/history`, old resolution documents),
+  and is that retained history the journal's successor — or is the audit
+  log alone enough?
 - Confirmation: the vision doc made every effectful stage an explicit
   user-confirmed checkpoint — does that survive unchanged in the tree model?
 - Idempotency expectations on effectful plugins: is "re-running with

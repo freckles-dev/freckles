@@ -62,6 +62,26 @@ A separate content-addressed record of one derivation: which operation
 output claim. Preserves the audit chain without entering the claim's address.
 _Avoid_: journal entry
 
+**Store**:
+The content-addressed home of all immutable documents and blobs (claims,
+provenance records, imported content, resolution documents), addressed by
+CID, with pluggable backends. One store per user; refs are namespaced per
+configuration.
+
+**Ref**:
+A mutable name → CID pointer in the store — the only mutable state, doubling
+as a garbage-collection root.
+
+**Resolution document**:
+The content-addressed snapshot of one resolved run: config snapshot, nodes
+with their resolved edges, operations and versions, and consumed-claim
+wiring. The lockfile's successor.
+_Avoid_: lockfile
+
+**Derivation index**:
+The prunable local cache mapping derivation hashes to claim CIDs. Not refs,
+never a GC root, rebuildable.
+
 **Trust**:
 Acting on an outcome without re-checking the world. Pure outcomes are trusted
 unconditionally (worst case: re-derived); effectful outcomes are trusted
