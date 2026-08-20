@@ -1,7 +1,7 @@
 # The shape of the tree
 
 Type: grilling
-Status: open
+Status: claimed
 Blocked by: 01
 
 ## Question
