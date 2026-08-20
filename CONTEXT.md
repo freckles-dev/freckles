@@ -1,7 +1,7 @@
 # freckles
 
 freckles turns minimal declarative configuration into running infrastructure
-and IT state through a tree of hashed, content-addressed operations. This
+and IT state through a DAG of named, hashed, content-addressed operations. This
 glossary is canonical for design discussions and documents; final naming
 review happens in the wayfinder ticket "Glossary and doc outline" — terms
 marked *(provisional)* may be renamed there.

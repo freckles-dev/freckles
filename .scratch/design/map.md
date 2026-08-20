@@ -23,8 +23,9 @@ precise enough to seed the formal spec and a first implementation.
   - The new brief (outcome hashing, tree base structure, pluggable CAS,
     bootstrap chain) **supersedes** the vision doc on conflict. Absence of a
     concept in the brief (e.g. catalogs) is *not* conflict — those stay open.
-- Standing design values: elegance and limited complexity; the tree-like
-  structure as the base design concept; root/sudo supported but rarely
+- Standing design values: elegance and limited complexity; the base
+  structure is a DAG of named nodes (Markus: "I misspoke when I said tree",
+  2026-08-20, ticket The shape of the tree); root/sudo supported but rarely
   required (userspace-first); outputs describe the environment and its
   capabilities.
 - Markus reacts best to concrete worked examples (the rosekube chain:
