@@ -79,11 +79,20 @@ precise enough to seed the formal spec and a first implementation.
   kinds/conventions are governed catalog content; templates (when they
   come) expand into the explicit DAG, dynamic DAGs rejected; full catalog
   design is a follow-up effort paired with rosekube migration.
+- [Secrets in the outcome model](issues/09-secrets-in-the-outcome-model.md)
+  — contract-first secret claims, shapes open: value-bearing (sops v1,
+  detachable from the CAS) and reference-bearing (logical-name identity,
+  secretspec-style providers as a future plugin); plaintext only at the
+  effectful runner boundary (ADR 0005); credentials are secret-marked
+  annotations, not identity; pure consumes claims only, effectful gets
+  local annotations too.
 
 ## Not yet specified
 
 - Multi-machine sharing — whether/how stores sync between machines; what the
-  IPFS backend is actually *for* (publication? distribution? backup?).
+  IPFS backend is actually *for* (publication? distribution? backup?);
+  includes team key distribution / multi-recipient encryption and secret
+  provider authentication (deferred there by Secrets in the outcome model).
 
 ## Out of scope
 

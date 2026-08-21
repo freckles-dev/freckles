@@ -13,6 +13,13 @@ request:
     - cid: bafy...config-claim
       claim: { kind: config, content: bafy...tree }
       annotations: { path: /home/u/.freckles/work/1f2e.../inputs/config }
+    - cid: bafy...secret-claim   # added by ticket 09: a value-bearing secret
+      claim: { kind: secret, name: proxmox-api-token, ciphertext: bafy...blob }
+      resolved: { value: "plaintext-here" }  # injected by the RUNNER at this
+                                             # boundary only — never on disk,
+                                             # in store, provenance, or audit;
+                                             # present only for effectful
+                                             # plugins (pure get ciphertext)
   workspace:
     dir: /home/u/.freckles/work/1f2e...
     path: [/home/u/.freckles/envs/3f9a.../bin]   # assembled by the runner
@@ -28,7 +35,12 @@ request:
 success:
   schema: 1
   claim: { kind: talos-cluster, name: staging, endpoint: "https://10.0.50.50:6443" }
-  annotations: { tf_workdir: /home/u/.freckles/work/1f2e.../tf }
+  annotations:
+    tf_workdir: /home/u/.freckles/work/1f2e.../tf
+    kubeconfig: { value: "...", secret: true }  # ticket 09: secret-marked
+                                                # annotation (a credential) —
+                                                # never printed by freckles,
+                                                # annotations index owner-only
 
 # ---- stdout <- plugin, exit != 0: structured error (audit log only) ----
 failure:

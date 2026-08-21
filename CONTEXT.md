@@ -26,7 +26,8 @@ operation at run time.
 **Effective inputs**:
 The claims matching an operation's declared consumed kinds — the only
 inputs entering the node's provenance record and cache key, and exactly
-what the operation receives at run time.
+what the operation receives at run time. Pure operations receive claims
+only; effectful operations also receive whatever annotations exist locally.
 
 **Plugin**:
 The content-addressed implementation an operation runs: a claim of kind
@@ -58,6 +59,24 @@ The unhashed part of an outcome: non-identity realization facts (local
 paths, timestamps, hosts) recording where and when the claim is realized on
 this machine. Annotations do not travel with the claim and are private to
 the machine that runs the node.
+
+**Secret value**:
+An encrypted input: a claim whose identity is its ciphertext, referenced by
+content hash — CAS-resident by default, detachable to the working copy when
+the ciphertext must not be published. Rotation changes the ciphertext and
+ripples staleness to consumers.
+
+**Secret reference**:
+A claim asserting that a named secret must be resolvable at run time.
+Identity is the logical name alone; which provider holds the value on this
+machine is machine-local configuration recorded in annotations at
+resolution. Rotation is invisible to staleness — handled by explicit
+verify and distrust.
+
+**Credential**:
+Access material minted by an effectful operation (a kubeconfig, a generated
+password). Never identity: lives in secret-marked annotations, private to
+the machine; rotates without changing any claim.
 
 **Realization**:
 Making a trusted claim usable on the local machine, producing its
