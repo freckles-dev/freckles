@@ -86,6 +86,12 @@ precise enough to seed the formal spec and a first implementation.
   effectful runner boundary (ADR 0005); credentials are secret-marked
   annotations, not identity; pure consumes claims only, effectful gets
   local annotations too.
+- [The rosekube chain on paper](issues/10-the-rosekube-chain-on-paper.md)
+  — the settled model expresses the full chain unchanged (prototype under
+  `prototype/`); granularity principle adopted (import at the granularity
+  of independent change); aggregator door named with its first concrete
+  knock, kept shut; terminal nodes legitimate; kinds: flat names reserved
+  for official vocabulary, non-core publishers advised to prefix.
 
 ## Not yet specified
 

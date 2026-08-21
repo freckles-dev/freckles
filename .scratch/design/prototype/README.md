@@ -24,6 +24,9 @@ where a file groups them; annotations live only in the local index.
 
 ## What writing it surfaced — react to these
 
+> Reacted 2026-08-21 — verdicts on all seven points live in
+> [the ticket's Answer](../issues/10-the-rosekube-chain-on-paper.md).
+
 - **R1 — secret granularity.** The sketch's single `sources/secrets` node
   would make *any* secret rotation stale *every* secret consumer (rotating
   Tailscale OAuth would re-run `tofu apply`). Since consumed claims are

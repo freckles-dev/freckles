@@ -24,5 +24,14 @@ To resolve:
   and what the doc explicitly defers (pointers into the map's out-of-scope
   and remaining fog).
 
+Naming inputs accumulated by later tickets:
+
+- Secrets in the outcome model (09): *secret value* / *secret reference* /
+  *credential* already in CONTEXT.md — confirm final wording.
+- The rosekube chain on paper (10): node-path conventions (`render/` for
+  non-roots — `sources/` misleads); *terminal node* (in CONTEXT.md); the
+  kind-namespacing convention (flat = official vocabulary, non-core
+  publishers advised to prefix) needs its design-doc wording.
+
 Run /grilling and /domain-modeling — this ticket *is* the domain-model
 consolidation. When it closes, the map's way is clear: write docs/design.md.

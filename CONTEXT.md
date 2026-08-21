@@ -41,6 +41,11 @@ A root node whose pure operation imports external content (files,
 directories, encrypted values) into the store; its claim references the
 imported bytes.
 
+**Terminal node**:
+A node no other node consumes. Legitimate, never a warning: its realization
+is the point (a tool on PATH for manual use) — a sink consumed by humans
+rather than by the DAG.
+
 **Outcome**:
 The value a successful operation returns: a structured description of what
 now exists and can be consumed — never a record of how it happened. One
