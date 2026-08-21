@@ -1,22 +1,34 @@
 # freckles
 
 freckles turns minimal declarative configuration into running infrastructure
-and IT state through a DAG of named, hashed, content-addressed operations. This
-glossary is canonical for design discussions and documents; final naming
-review happens in the wayfinder ticket "Glossary and doc outline" — terms
-marked *(provisional)* may be renamed there.
+and IT state through a DAG of named, hashed, content-addressed operations.
+This glossary is canonical for design discussions and documents, and is the
+design doc's glossary (naming review completed 2026-08-21, ticket "Glossary
+and doc outline"). Retired vocabulary: stage, pipeline, render/execute
+stages, artifact, journal, lockfile, frecklet (catalog-effort vocabulary).
 
 ## Language
 
-**Operation** *(provisional)*:
+**Operation**:
 A pluggable unit of work that declares the claim kinds it consumes and
 produces one outcome on success. Declares itself pure or effectful.
-_Avoid_: transformer, task (candidate names, undecided), stage
+_Avoid_: transformer, task, stage
 
 **Node**:
 A named element of the DAG: a stable, path-like human name binding an
 operation, its configuration, and input edges. Names are the stable
 identity across config edits; hashes are the versioned identity beneath.
+
+**Configuration**:
+The user's whole declaration: the named-node DAG plus the values and secret
+files beside it. A git working copy, never store content; the resolution
+document snapshots it by CID. A node's `config` block — its operation
+parameters — is "node config", never "the configuration".
+
+**Values**:
+The claim kind of imported user-supplied value documents (produced by
+`import-values`), imported at the granularity of independent change.
+_Avoid_: config (as a claim kind)
 
 **Available environment**:
 The merged claims of a node's transitive predecessors, keyed by kind. A

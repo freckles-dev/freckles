@@ -92,17 +92,26 @@ precise enough to seed the formal spec and a first implementation.
   of independent change); aggregator door named with its first concrete
   knock, kept shut; terminal nodes legitimate; kinds: flat names reserved
   for official vocabulary, non-core publishers advised to prefix.
+- [Glossary and doc outline](issues/11-glossary-and-doc-outline.md) — the
+  unit of work is the *operation*, final; config collision resolved
+  (configuration / node config / kind `values`); stage, pipeline, artifact,
+  journal, lockfile, frecklet retired; CONTEXT.md graduates as the design
+  doc's glossary; twelve-section outline adopted with the rosekube chain
+  as its own anchoring section.
 
 ## Not yet specified
 
-- Multi-machine sharing — whether/how stores sync between machines; what the
-  IPFS backend is actually *for* (publication? distribution? backup?);
-  includes team key distribution / multi-recipient encryption and secret
-  provider authentication (deferred there by Secrets in the outcome model).
+*(empty — the way is clear. All eleven tickets closed 2026-08-20/21; the
+handoff is writing docs/design.md, per Notes not itself a map ticket.)*
 
 ## Out of scope
 
 - Implementing freckles itself — this effort ends at the design doc.
+- Multi-machine sharing — store sync, the IPFS backend's purpose, team key
+  distribution / multi-recipient encryption, secret provider
+  authentication. Ruled a named deferral of the design doc by
+  [Glossary and doc outline](issues/11-glossary-and-doc-outline.md)
+  (Deferred section) rather than in-scope fog; returns as its own effort.
 - Full catalog/template design (layering semantics, frecklet format, policy
   composition) and the rosekube migration path — one follow-up effort;
   extension points named in

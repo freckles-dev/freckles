@@ -18,7 +18,9 @@ clumsy?* React; corrections feed back into the affected decisions.
 4. [day2.md](day2.md) — two deltas: enable karakeep; rotate the Proxmox token
 
 CID convention: placeholders (`bafy_CLAIM_INFRA_V1`) for readability; real
-addresses are opaque base32 CIDv1. Real store docs are spec-strict DAG-CBOR;
+addresses are opaque base32 CIDv1. Naming note: Glossary and doc outline
+(resolved after this prototype) renamed claim kind `config` → `values`;
+these documents predate that and are not updated. Real store docs are spec-strict DAG-CBOR;
 YAML here is for reading. Claim/provenance are separate store documents even
 where a file groups them; annotations live only in the local index.
 
