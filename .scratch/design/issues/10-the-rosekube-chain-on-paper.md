@@ -1,7 +1,7 @@
 # The rosekube chain on paper
 
 Type: prototype
-Status: open
+Status: claimed
 Blocked by: 02, 06
 
 ## Question
