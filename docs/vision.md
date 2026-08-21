@@ -1,5 +1,13 @@
 # freckles — Vision
 
+> **Superseded where they diverge:** [design.md](design.md) (2026-08-21) is
+> the current model — DAG of named nodes, outcome-hashed operations,
+> content-addressed store. Its §1 lists exactly which concepts of this
+> document it replaces (pipeline/stages, transformer, artifact, lockfile,
+> journal, tool store). This document remains valid for motivation, the
+> curation philosophy (deferred, not dropped), and the reproducibility
+> stance.
+
 freckles is a Python framework for minimum-configuration, reproducible
 devops. The user writes the smallest configuration that cannot be defaulted —
 which applications to enable, a root domain, IP addresses, secrets — and
