@@ -1,0 +1,96 @@
+# PROTOTYPE — throwaway (wayfinder ticket 10).
+# Outcomes + provenance for the five pure source roots: two value imports,
+# three secret values (ticket 09 shapes). Built-in plugins carry no plugin
+# claim CID — the freckles version enters provenance instead.
+
+sources/values/cluster:
+  outcome:
+    claim:                              # bafy_CLAIM_VAL_CLUSTER
+      schema: 1
+      kind: config
+      name: cluster
+      content: bafy_VAL_CLUSTER_DOC     # the imported values as a store doc
+    annotations:
+      imported_from: /home/markus/clusters/staging/cluster.yaml#cluster
+      imported_at: "2026-08-21T09:19:02Z"
+  provenance:                           # bafy_PROV_VAL_CLUSTER
+    schema: 1
+    plugin: { builtin: import-values, freckles: 0.1.0 }
+    config: { file: cluster.yaml, key: cluster }
+    inputs: {}
+    outcome: bafy_CLAIM_VAL_CLUSTER
+    derivation: drv_VAL_CLUSTER_V1
+
+sources/values/apps:
+  outcome:
+    claim:                              # bafy_CLAIM_VAL_APPS
+      schema: 1
+      kind: config
+      name: apps
+      content: bafy_VAL_APPS_DOC
+    annotations:
+      imported_from: /home/markus/clusters/staging/cluster.yaml#apps
+      imported_at: "2026-08-21T09:19:02Z"
+  provenance:                           # bafy_PROV_VAL_APPS
+    schema: 1
+    plugin: { builtin: import-values, freckles: 0.1.0 }
+    config: { file: cluster.yaml, key: apps }
+    inputs: {}
+    outcome: bafy_CLAIM_VAL_APPS
+    derivation: drv_VAL_APPS_V1
+
+sources/secrets/proxmox-api-token:      # value-bearing secret value (ticket 09)
+  outcome:
+    claim:                              # bafy_CLAIM_SECRET_PROXMOX
+      schema: 1
+      kind: secret
+      name: proxmox-api-token
+      ciphertext: bafy_CT_PROXMOX       # ciphertext bytes in the CAS (default)
+    annotations:
+      imported_from: /home/markus/clusters/staging/secrets.sops.yaml#proxmox_api_token
+      imported_at: "2026-08-21T09:19:03Z"
+  provenance:                           # bafy_PROV_SECRET_PROXMOX
+    schema: 1
+    plugin: { builtin: import-sops, freckles: 0.1.0 }
+    config: { file: secrets.sops.yaml, key: proxmox_api_token }
+    inputs: {}
+    outcome: bafy_CLAIM_SECRET_PROXMOX
+    derivation: drv_SECRET_PROXMOX_V1
+
+sources/secrets/tailscale-oauth:
+  outcome:
+    claim:                              # bafy_CLAIM_SECRET_TAILSCALE
+      schema: 1
+      kind: secret
+      name: tailscale-oauth
+      ciphertext: bafy_CT_TAILSCALE
+    annotations:
+      imported_from: /home/markus/clusters/staging/secrets.sops.yaml#tailscale_oauth
+      imported_at: "2026-08-21T09:19:03Z"
+  provenance:                           # bafy_PROV_SECRET_TAILSCALE
+    schema: 1
+    plugin: { builtin: import-sops, freckles: 0.1.0 }
+    config: { file: secrets.sops.yaml, key: tailscale_oauth }
+    inputs: {}
+    outcome: bafy_CLAIM_SECRET_TAILSCALE
+    derivation: drv_SECRET_TAILSCALE_V1
+
+sources/secrets/cluster-age-key:        # DETACHED value (store: false, ticket 09)
+  outcome:
+    claim:                              # bafy_CLAIM_SECRET_AGEKEY
+      schema: 1
+      kind: secret
+      name: cluster-age-key
+      ciphertext: bafy_CT_AGEKEY        # same claim shape — the hash is real,
+                                        # but the bytes are NOT in the CAS
+    annotations:
+      imported_from: /home/markus/clusters/staging/secrets.sops.yaml#cluster_age_key
+      detached: true                    # runner materializes from the working
+      imported_at: "2026-08-21T09:19:03Z"  # copy, never from the store
+  provenance:                           # bafy_PROV_SECRET_AGEKEY
+    schema: 1
+    plugin: { builtin: import-sops, freckles: 0.1.0 }
+    config: { file: secrets.sops.yaml, key: cluster_age_key, store: false }
+    inputs: {}
+    outcome: bafy_CLAIM_SECRET_AGEKEY
+    derivation: drv_SECRET_AGEKEY_V1

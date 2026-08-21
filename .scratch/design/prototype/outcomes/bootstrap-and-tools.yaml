@@ -1,0 +1,86 @@
+# PROTOTYPE — throwaway (wayfinder ticket 10).
+# Outcomes + provenance for the bootstrap root and the three tool nodes.
+# In the store these are SEPARATE documents (claim, provenance record); they
+# are grouped per node here only for reading. Annotations are NOT store
+# documents — they live in the local annotations index, keyed by claim CID.
+
+bootstrap:
+  outcome:
+    claim:                              # store doc; CID = bafy_CLAIM_BOOTSTRAP
+      schema: 1
+      kind: bootstrap
+      tool: mise
+      version: 2025.8.1
+      platform: linux-64
+    annotations:                        # local index entry, unhashed
+      path: /home/markus/.freckles/envs/mise-2025.8.1/bin/mise
+      realized_at: "2026-08-21T09:20:11Z"
+  provenance:                           # store doc; CID = bafy_PROV_BOOTSTRAP
+    schema: 1
+    plugin: { cid: bafy_PLUG_BOOTSTRAP_MISE, name: bootstrap-mise, version: 0.3.1 }
+    config: { version: 2025.8.1 }
+    inputs: {}
+    outcome: bafy_CLAIM_BOOTSTRAP
+    derivation: drv_BOOTSTRAP_V1        # hash(plugin CID, config, input claim CIDs)
+                                        # node name is deliberately NOT in the
+                                        # derivation: two nodes with identical
+                                        # derivations share one cache entry
+
+tools/opentofu:
+  outcome:
+    claim:                              # bafy_CLAIM_TOOL_OPENTOFU
+      schema: 1
+      kind: tool
+      tool: opentofu
+      version: 1.8.2
+      platform: linux-64
+      # no content CID: realized environments stay OUT of the CAS (Storage
+      # and addressing); realization = re-derive via mise, provenance-keyed
+    annotations:
+      path: /home/markus/.freckles/envs/3f9a12/bin/tofu
+      realized_at: "2026-08-21T09:21:03Z"
+  provenance:                           # bafy_PROV_TOOL_OPENTOFU
+    schema: 1
+    plugin: { cid: bafy_PLUG_MISE_INSTALL, name: mise-install, version: 0.3.1 }
+    config: { package: opentofu, version: 1.8.2 }
+    inputs: { bootstrap: bafy_CLAIM_BOOTSTRAP }
+    outcome: bafy_CLAIM_TOOL_OPENTOFU
+    derivation: drv_TOOL_OPENTOFU_V1
+
+tools/talosctl:
+  outcome:
+    claim:                              # bafy_CLAIM_TOOL_TALOSCTL
+      schema: 1
+      kind: tool
+      tool: talosctl
+      version: 1.8.0
+      platform: linux-64
+    annotations:
+      path: /home/markus/.freckles/envs/8c2d77/bin/talosctl
+      realized_at: "2026-08-21T09:21:19Z"
+  provenance:                           # bafy_PROV_TOOL_TALOSCTL
+    schema: 1
+    plugin: { cid: bafy_PLUG_MISE_INSTALL, name: mise-install, version: 0.3.1 }
+    config: { package: talosctl, version: 1.8.0 }
+    inputs: { bootstrap: bafy_CLAIM_BOOTSTRAP }
+    outcome: bafy_CLAIM_TOOL_TALOSCTL
+    derivation: drv_TOOL_TALOSCTL_V1
+
+tools/flux:
+  outcome:
+    claim:                              # bafy_CLAIM_TOOL_FLUX
+      schema: 1
+      kind: tool
+      tool: flux
+      version: 2.4.0
+      platform: linux-64
+    annotations:
+      path: /home/markus/.freckles/envs/b91e40/bin/flux
+      realized_at: "2026-08-21T09:21:34Z"
+  provenance:                           # bafy_PROV_TOOL_FLUX
+    schema: 1
+    plugin: { cid: bafy_PLUG_MISE_INSTALL, name: mise-install, version: 0.3.1 }
+    config: { package: flux, version: 2.4.0 }
+    inputs: { bootstrap: bafy_CLAIM_BOOTSTRAP }
+    outcome: bafy_CLAIM_TOOL_FLUX
+    derivation: drv_TOOL_FLUX_V1

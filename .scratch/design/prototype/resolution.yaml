@@ -1,0 +1,113 @@
+# PROTOTYPE — throwaway (wayfinder ticket 10).
+#
+# The RESOLUTION DOCUMENT (Storage and addressing): the content-addressed
+# snapshot of one resolved run — the lockfile's successor. Store document,
+# spec-strict DAG-CBOR in reality; YAML here for reading.
+#
+# CID convention in this prototype: real addresses are opaque base32 CIDv1
+# (bafyrei...). Placeholders like `bafy_CLAIM_INFRA_V1` keep cross-file
+# references readable — the SUFFIX is not information a real CID carries.
+
+resolution:                            # this document = bafy_RES_V1
+  schema: 1
+  config_snapshot: bafy_CFGSNAP_V1     # freckles.yaml + cluster.yaml as imported
+  freckles: { version: 0.1.0 }         # built-ins' version enters provenance
+
+  plugins:                             # every non-built-in pinned as a claim CID
+    bootstrap-mise:   { cid: bafy_PLUG_BOOTSTRAP_MISE,   version: 0.3.1 }
+    mise-install:     { cid: bafy_PLUG_MISE_INSTALL,     version: 0.3.1 }
+    tofu-apply:       { cid: bafy_PLUG_TOFU_APPLY,       version: 0.4.2 }  # catalog-level
+    render-flux-tree: { cid: bafy_PLUG_RENDER_FLUX_TREE, version: 0.2.0 }  # catalog-level
+    flux-bootstrap:   { cid: bafy_PLUG_FLUX_BOOTSTRAP,   version: 0.4.0 }  # catalog-level
+    git-push:         { cid: bafy_PLUG_GIT_PUSH,         version: 0.1.3 }  # catalog-level
+    import-values:    builtin          # ships with freckles 0.1.0
+    import-sops:      builtin
+
+  nodes:                               # resolved, post-inference edges
+    bootstrap:
+      plugin: bootstrap-mise
+      effect: pure
+      edges: []
+    tools/opentofu:
+      plugin: mise-install
+      effect: pure
+      edges:
+        - { consumes: bootstrap, from: bootstrap, via: inferred }
+    tools/talosctl:
+      plugin: mise-install
+      effect: pure
+      edges:
+        - { consumes: bootstrap, from: bootstrap, via: inferred }
+    tools/flux:
+      plugin: mise-install
+      effect: pure
+      edges:
+        - { consumes: bootstrap, from: bootstrap, via: inferred }
+    sources/values/cluster: { plugin: import-values, effect: pure, edges: [] }
+    sources/values/apps:    { plugin: import-values, effect: pure, edges: [] }
+    sources/secrets/proxmox-api-token: { plugin: import-sops, effect: pure, edges: [] }
+    sources/secrets/tailscale-oauth:   { plugin: import-sops, effect: pure, edges: [] }
+    sources/secrets/cluster-age-key:   { plugin: import-sops, effect: pure, edges: [] }
+    infra/staging:
+      plugin: tofu-apply
+      effect: effectful
+      edges:
+        - { consumes: tool(tool=opentofu), from: tools/opentofu,                via: inferred }
+        - { consumes: config,              from: sources/values/cluster,        via: "use:" }
+        - { consumes: secret,              from: sources/secrets/proxmox-api-token, via: "use:" }
+    render/flux-tree:
+      plugin: render-flux-tree
+      effect: pure
+      edges:
+        - { consumes: config, from: sources/values/apps,             via: "use:" }
+        - { consumes: secret, from: sources/secrets/tailscale-oauth, via: "use:" }
+    k8s/flux-bootstrap:
+      plugin: flux-bootstrap
+      effect: effectful
+      edges:
+        - { consumes: talos-cluster,   from: infra/staging,                  via: inferred }
+        - { consumes: tool(tool=flux), from: tools/flux,                     via: inferred }
+        - { consumes: config,          from: sources/values/cluster,         via: "use:" }
+        - { consumes: secret,          from: sources/secrets/cluster-age-key, via: "use:" }
+    k8s/push-config:
+      plugin: git-push
+      effect: effectful
+      edges:
+        - { consumes: file-tree, from: render/flux-tree,   via: inferred }
+        - { consumes: gitops,    from: k8s/flux-bootstrap, via: inferred }
+
+# ---------------------------------------------------------------------------
+# Store state AFTER the first full run (refs are the only mutable state and
+# double as GC roots; the derivation index is a separate prunable local
+# cache, deliberately NOT refs):
+
+refs:
+  cfg/staging/current: bafy_RES_V1
+  cfg/staging/nodes/bootstrap:                        bafy_CLAIM_BOOTSTRAP
+  cfg/staging/nodes/tools/opentofu:                   bafy_CLAIM_TOOL_OPENTOFU
+  cfg/staging/nodes/tools/talosctl:                   bafy_CLAIM_TOOL_TALOSCTL
+  cfg/staging/nodes/tools/flux:                       bafy_CLAIM_TOOL_FLUX
+  cfg/staging/nodes/sources/values/cluster:           bafy_CLAIM_VAL_CLUSTER
+  cfg/staging/nodes/sources/values/apps:              bafy_CLAIM_VAL_APPS
+  cfg/staging/nodes/sources/secrets/proxmox-api-token: bafy_CLAIM_SECRET_PROXMOX
+  cfg/staging/nodes/sources/secrets/tailscale-oauth:  bafy_CLAIM_SECRET_TAILSCALE
+  cfg/staging/nodes/sources/secrets/cluster-age-key:  bafy_CLAIM_SECRET_AGEKEY
+  cfg/staging/nodes/infra/staging:                    bafy_CLAIM_INFRA_V1
+  cfg/staging/nodes/render/flux-tree:                 bafy_CLAIM_TREE_V1
+  cfg/staging/nodes/k8s/flux-bootstrap:               bafy_CLAIM_GITOPS
+  cfg/staging/nodes/k8s/push-config:                  bafy_CLAIM_SYNCED_V1
+
+derivation_index:              # derivation hash -> claim CID; rebuildable
+  drv_BOOTSTRAP_V1:      bafy_CLAIM_BOOTSTRAP
+  drv_TOOL_OPENTOFU_V1:  bafy_CLAIM_TOOL_OPENTOFU
+  drv_TOOL_TALOSCTL_V1:  bafy_CLAIM_TOOL_TALOSCTL
+  drv_TOOL_FLUX_V1:      bafy_CLAIM_TOOL_FLUX
+  drv_VAL_CLUSTER_V1:    bafy_CLAIM_VAL_CLUSTER
+  drv_VAL_APPS_V1:       bafy_CLAIM_VAL_APPS
+  drv_SECRET_PROXMOX_V1: bafy_CLAIM_SECRET_PROXMOX
+  drv_SECRET_TAILSCALE_V1: bafy_CLAIM_SECRET_TAILSCALE
+  drv_SECRET_AGEKEY_V1:  bafy_CLAIM_SECRET_AGEKEY
+  drv_INFRA_V1:          bafy_CLAIM_INFRA_V1
+  drv_TREE_V1:           bafy_CLAIM_TREE_V1
+  drv_GITOPS_V1:         bafy_CLAIM_GITOPS
+  drv_SYNCED_V1:         bafy_CLAIM_SYNCED_V1

@@ -1,0 +1,40 @@
+# PROTOTYPE — throwaway (wayfinder ticket 10).
+# Second effectful checkpoint. Demonstrates ticket 09's consumption rule in
+# anger: as an EFFECTFUL consumer, this node receives the talos-cluster
+# claim TOGETHER with its local annotations — that is how it gets the
+# kubeconfig. (A pure consumer of the same claim would receive claim fields
+# only.) The cluster age key arrives as runner-resolved plaintext (flow A)
+# and is planted in-cluster as the sops-age secret for Flux.
+
+k8s/flux-bootstrap:
+  outcome:
+    claim:                              # bafy_CLAIM_GITOPS
+      schema: 1
+      kind: gitops                      # catalog kind
+      cluster: staging
+      repo: "ssh://git@codeberg.org/frkl/staging-cluster.git"
+      branch: main
+      path: flux-system
+      flux_version: 2.4.0
+    annotations:
+      bootstrapped_at: "2026-08-21T09:41:12Z"
+  provenance:                           # bafy_PROV_GITOPS
+    schema: 1
+    plugin: { cid: bafy_PLUG_FLUX_BOOTSTRAP, name: flux-bootstrap, version: 0.4.0 }
+    config: {}
+    inputs:
+      talos-cluster: bafy_CLAIM_INFRA_V1
+      tool: bafy_CLAIM_TOOL_FLUX
+      config: bafy_CLAIM_VAL_CLUSTER
+      secret: bafy_CLAIM_SECRET_AGEKEY  # detached ciphertext claim; plaintext
+                                        # resolved by the runner from the
+                                        # working copy, in memory only
+    outcome: bafy_CLAIM_GITOPS
+    derivation: drv_GITOPS_V1
+
+# Checkpoint prompt shown for this run (Effects and day-2 + ticket 09):
+#   node k8s/flux-bootstrap (flux-bootstrap@0.4.0)
+#   supersedes: nothing (first run)
+#   receives plaintext secrets: cluster-age-key
+#   requires privilege: no
+#   proceed? [y/N]

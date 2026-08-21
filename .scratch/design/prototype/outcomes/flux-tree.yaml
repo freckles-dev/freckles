@@ -1,0 +1,39 @@
+# PROTOTYPE — throwaway (wayfinder ticket 10).
+# The pure render: today's copier expansion of the flux/ layout. Apps are
+# NOT nodes — curation is deferred (Where curation lives); they are content
+# this render produces from the apps values. The Tailscale OAuth secret is
+# embedded as CIPHERTEXT (flow B): a pure node may consume a secret claim
+# but only ever sees the encrypted bytes — Flux decrypts in-cluster.
+
+render/flux-tree:
+  outcome:
+    claim:                              # bafy_CLAIM_TREE_V1
+      schema: 1
+      kind: file-tree
+      content: bafy_TREE_FLUX_V1        # tree document: (name -> CID) pairs
+    annotations:
+      path: /home/markus/.freckles/work/render-flux-tree/out
+      rendered_at: "2026-08-21T09:22:40Z"
+  provenance:                           # bafy_PROV_TREE_V1
+    schema: 1
+    plugin: { cid: bafy_PLUG_RENDER_FLUX_TREE, name: render-flux-tree, version: 0.2.0 }
+    config: {}
+    inputs:
+      config: bafy_CLAIM_VAL_APPS
+      secret: bafy_CLAIM_SECRET_TAILSCALE   # ciphertext in, ciphertext out
+    outcome: bafy_CLAIM_TREE_V1
+    derivation: drv_TREE_V1
+
+# The tree document bafy_TREE_FLUX_V1 (a freckles doc of name->CID pairs —
+# NOT an ipfs-add file tree; CAS survey), abbreviated:
+#
+#   flux-system/gotk-sync.yaml            -> bafy_F_GOTKSYNC
+#   infra/tailscale/operator.yaml         -> bafy_F_TS_OPERATOR
+#   infra/tailscale/oauth-secret.sops.yaml-> bafy_F_TS_OAUTH     # ciphertext
+#                                            # embedded, still encrypted —
+#                                            # safe in a publishable tree
+#   apps/paperless-ngx/helmrelease.yaml   -> bafy_F_PAPERLESS_HR
+#   apps/paperless-ngx/postgres.yaml      -> bafy_F_PAPERLESS_PG # CNPG Cluster,
+#                                            # app-local per curation policy
+#   apps/paperless-ngx/ingress.yaml       -> bafy_F_PAPERLESS_ING # tailscale
+#   apps/linkwarden/helmrelease.yaml      -> bafy_F_LINKWARDEN_HR

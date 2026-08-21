@@ -1,0 +1,27 @@
+# PROTOTYPE — throwaway (wayfinder ticket 10).
+# Third effectful checkpoint: push the rendered tree to the cluster repo.
+# From here Flux reconciles — decrypting the embedded sops secret in-cluster
+# (flow B), exactly as rosekube does today.
+
+k8s/push-config:
+  outcome:
+    claim:                              # bafy_CLAIM_SYNCED_V1
+      schema: 1
+      kind: gitops-synced               # catalog kind
+      repo: "ssh://git@codeberg.org/frkl/staging-cluster.git"
+      branch: main
+      commit: "9f31c2e8a4d0b7f6e5c3a1908d2b4c6e8f0a1b2c"
+      tree: bafy_TREE_FLUX_V1           # the pushed content, by CAS address —
+                                        # ties the world fact (commit) to the
+                                        # derived content that produced it
+    annotations:
+      pushed_at: "2026-08-21T09:43:55Z"
+  provenance:                           # bafy_PROV_SYNCED_V1
+    schema: 1
+    plugin: { cid: bafy_PLUG_GIT_PUSH, name: git-push, version: 0.1.3 }
+    config: {}
+    inputs:
+      file-tree: bafy_CLAIM_TREE_V1
+      gitops: bafy_CLAIM_GITOPS
+    outcome: bafy_CLAIM_SYNCED_V1
+    derivation: drv_SYNCED_V1

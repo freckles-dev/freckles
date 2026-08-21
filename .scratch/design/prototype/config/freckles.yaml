@@ -1,0 +1,69 @@
+# PROTOTYPE — throwaway (wayfinder ticket 10). Hand-written; nothing runs this.
+#
+# The user's whole configuration: a DAG of named nodes (The shape of the
+# tree). This is the git-tracked WORKING COPY — it never enters the store;
+# the resolution document snapshots it (Storage and addressing).
+#
+# Deviations from the ticket-02 sketch, made deliberately — react to them
+# (see prototype README, reaction points R1, R2, R6):
+#   R1: one import-sops node PER VALUE (sketch had one `sources/secrets`)
+#   R2: cluster values split from app values (sketch had one import-values)
+#   R6: `render/flux-tree` (sketch said `sources/` — but it isn't a root)
+
+nodes:
+  bootstrap:                          # root; pure
+    op: bootstrap-mise
+    config: { version: 2025.8.1 }
+
+  tools/opentofu: { op: mise-install, config: { package: opentofu, version: 1.8.2 } }
+  tools/talosctl: { op: mise-install, config: { package: talosctl, version: 1.8.0 } }
+  tools/flux:     { op: mise-install, config: { package: flux,     version: 2.4.0 } }
+  # tools/* consume kind `bootstrap` — one provider, edge inferred.
+  # NOTE tools/talosctl dangles: no node consumes it (sketch had it too).
+  # Harmless under ADR 0002 — see reaction point R5.
+
+  sources/values/cluster:             # root; pure import of cluster.yaml#cluster
+    op: import-values
+    config: { file: cluster.yaml, key: cluster }
+  sources/values/apps:                # root; pure import of cluster.yaml#apps
+    op: import-values
+    config: { file: cluster.yaml, key: apps }
+
+  sources/secrets/proxmox-api-token:  # value-bearing secret value (ticket 09)
+    op: import-sops
+    config: { file: secrets.sops.yaml, key: proxmox_api_token }
+  sources/secrets/tailscale-oauth:
+    op: import-sops
+    config: { file: secrets.sops.yaml, key: tailscale_oauth }
+  sources/secrets/cluster-age-key:
+    op: import-sops
+    config: { file: secrets.sops.yaml, key: cluster_age_key, store: false }
+    # store: false = the DETACHED variant (ticket 09): ciphertext hashed into
+    # the claim but never put into the CAS; materialized from this working
+    # copy. Claim shape is identical — detachment is store behavior only.
+
+  infra/staging:                      # effectful checkpoint: tofu apply
+    op: tofu-apply
+    config: { module: talos-proxmox }
+    use:                              # kinds with >1 provider need explicit
+      config: sources/values/cluster  # selection — ambiguity is a hard error
+      secret: sources/secrets/proxmox-api-token
+    # consumes (plugin-declared): tool(opentofu), config, secret
+    # tool(opentofu) stays inferred: the selector picks 1 of the 3 tools.
+
+  render/flux-tree:                   # pure: today's copier render of flux/
+    op: render-flux-tree
+    use:
+      config: sources/values/apps
+      secret: sources/secrets/tailscale-oauth   # ciphertext EMBEDDED (flow B)
+
+  k8s/flux-bootstrap:                 # effectful checkpoint
+    op: flux-bootstrap
+    use:
+      config: sources/values/cluster
+      secret: sources/secrets/cluster-age-key   # plaintext at boundary (flow A)
+    # consumes: talos-cluster (inferred), tool(flux) (inferred), config, secret
+
+  k8s/push-config:                    # effectful checkpoint: push rendered tree
+    op: git-push
+    # consumes: file-tree (inferred), gitops (inferred) — no use: needed

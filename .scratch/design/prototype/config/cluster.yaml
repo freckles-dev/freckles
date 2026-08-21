@@ -1,0 +1,18 @@
+# PROTOTYPE — throwaway (wayfinder ticket 10).
+# The user's values file, imported by the two import-values nodes with
+# distinct keys. Values lifted from vision.md §10 (Markus-confirmed shape).
+
+cluster:                    # -> sources/values/cluster
+  name: staging
+  proxmox: { node: rose, endpoint: "https://rose.example.ts.net:8006/", vm_id: 501 }
+  network: { bridge: vmbr5, cidr: 10.0.50.0/24, node_ip: 10.0.50.50, gateway: 10.0.50.1 }
+  sizing: { cores: 4, memory_mib: 8192, system_disk_gib: 32, longhorn_disk_gib: 100 }
+  git: { url: "ssh://git@codeberg.org/frkl/staging-cluster.git", branch: main }
+
+apps:                       # -> sources/values/apps
+  paperless-ngx:
+    enabled: true
+    ingress: tailscale
+    database: cloudnative-pg          # curation policy: app-local CNPG cluster
+  linkwarden:
+    enabled: true

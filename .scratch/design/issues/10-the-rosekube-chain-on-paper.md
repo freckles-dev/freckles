@@ -36,3 +36,7 @@ Produce, as real files (linked from this ticket, living under
 React to it with Markus (HITL): where the schema feels clumsy, verbose, or
 ambiguous, feed corrections back into the affected decisions before the
 design doc is written.
+
+Asset: [the prototype](../prototype/README.md) — full chain (13 nodes),
+resolution document, per-node outcome + provenance docs, two day-2 deltas;
+seven reaction points (R1–R7) in its README await Markus's reaction.

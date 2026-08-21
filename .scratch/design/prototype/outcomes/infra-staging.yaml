@@ -1,0 +1,52 @@
+# PROTOTYPE — throwaway (wayfinder ticket 10).
+# The first effectful node: tofu apply creating the Proxmox VM + Talos host.
+# Ran as an explicit CHECKPOINT (Effects and day-2); the confirmation prompt
+# named the node, the superseded claim (none, day 1), and — per ticket 09 —
+# "receives plaintext secrets: proxmox-api-token".
+
+infra/staging:
+  outcome:
+    claim:                              # bafy_CLAIM_INFRA_V1
+      schema: 1
+      kind: talos-cluster               # catalog kind: fields by curated convention
+      name: staging
+      endpoint: "https://10.0.50.50:6443"
+      talos_version: 1.8.0
+      kubernetes_version: 1.31.1
+      ca_fingerprint: "sha256:7d9e41aa03..."   # identity-bearing world fact
+      nodes:
+        - { name: staging-cp1, ip: 10.0.50.50, roles: [controlplane, worker] }
+      # NOTE what is ABSENT: no kubeconfig, no admin cert — credentials are
+      # never identity (ADR 0005). The claim describes the environment;
+      # access material lives below, in annotations.
+    annotations:
+      tf_workdir: /home/markus/.freckles/work/infra-staging/tf
+      proxmox_vm_id: 501
+      applied_at: "2026-08-21T09:34:57Z"
+      kubeconfig:                       # the CREDENTIAL (ticket 09): secret-marked,
+        secret: true                    # never printed, index kept owner-only;
+        value: |                        # private to this machine, not in any store
+          apiVersion: v1
+          kind: Config
+          clusters: [{ name: staging, cluster: { server: "https://10.0.50.50:6443", certificate-authority-data: LS0t...fake } }]
+          users: [{ name: admin@staging, user: { client-certificate-data: LS0t...fake, client-key-data: LS0t...fake } }]
+          contexts: [{ name: admin@staging, context: { cluster: staging, user: admin@staging } }]
+          current-context: admin@staging
+  provenance:                           # bafy_PROV_INFRA_V1
+    schema: 1
+    plugin: { cid: bafy_PLUG_TOFU_APPLY, name: tofu-apply, version: 0.4.2 }
+    config: { module: talos-proxmox }
+    inputs:
+      tool: bafy_CLAIM_TOOL_OPENTOFU
+      config: bafy_CLAIM_VAL_CLUSTER
+      secret: bafy_CLAIM_SECRET_PROXMOX # the CIPHERTEXT claim is the input —
+                                        # plaintext existed only in the request
+                                        # document, in memory (flow A)
+    outcome: bafy_CLAIM_INFRA_V1
+    derivation: drv_INFRA_V1
+
+# Audit log lines for this run (local, append-only, never consumed):
+#   2026-08-21T09:31:02Z infra/staging checkpoint confirmed by markus
+#     (secrets resolved: proxmox-api-token — names only, never values)
+#   2026-08-21T09:34:57Z infra/staging ok drv_INFRA_V1 -> bafy_CLAIM_INFRA_V1
+#     plugin tofu-apply@0.4.2 exit=0 duration=235s
