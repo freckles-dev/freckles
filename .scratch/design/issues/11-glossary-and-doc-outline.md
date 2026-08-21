@@ -1,7 +1,7 @@
 # Glossary and doc outline
 
 Type: grilling
-Status: open
+Status: claimed
 Blocked by: 05, 07, 08, 09, 10
 
 ## Question
