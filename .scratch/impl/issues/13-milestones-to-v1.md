@@ -14,7 +14,9 @@ Slice into milestones, each independently landable; candidates:
 
 - The secrets boundary: `import-sops`, age key handling, the checkpoint
   prompt naming plaintext secrets.
-- Real bootstrap: `bootstrap-mise` + `mise-install`.
+- Real bootstrap: `bootstrap-mise` + `mise-install`; the pixi leg
+  (`bootstrap-pixi` + `pixi-install`) and copier via both routes (the
+  amended acceptance clause).
 - Remaining built-ins (`import-file-tree`, `import-git`,
   `fetch-verify`).
 - Additional backends, drift/verify, GC — per the cut.

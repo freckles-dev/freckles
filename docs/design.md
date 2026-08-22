@@ -229,7 +229,9 @@ content-addressed implementation it runs.
 - **The sets**: built-ins — `import-values`, `import-file-tree`,
   `import-sops`, `import-git`, `fetch-verify`, `command`. Standard
   plugins — `bootstrap-mise` (default), `bootstrap-pixi` (first-class
-  peer), `mise-install`, `uv-python`, `copier`. Catalog-level plugins
+  peer), `mise-install`, `pixi-install` (its peer — a bootstrap without
+  an install analog delivers no tools), `uv-python`, `copier`.
+  Catalog-level plugins
   (`tofu-apply`, `flux-bootstrap`, `git-push`, …) come with curation. The
   only true root is `fetch-verify` (§11). `import-git` is deliberately
   built-in rather than standard — a recorded amendment (2026-08-22) of

@@ -104,3 +104,8 @@ Two changes from the design-doc review (Markus):
    other config; annotations were rejected as the vehicle (unhashed,
    machine-local). `command`'s consumed selectors are likewise
    node-supplied, via the existing node-augmentable selector mechanism.
+3. The standard set grows by `pixi-install` (exposed by the
+   implementation map's The v1 cut, 2026-08-22): `bootstrap-pixi` was
+   named a first-class peer, but without an install analog to
+   `mise-install` it can deliver no `tool` claims — the peer claim
+   implied the plugin. design.md §6 amended.

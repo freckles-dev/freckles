@@ -27,8 +27,11 @@ as the ceiling.
     chain** — bootstrap-mise → mise-install → import-values/import-sops
     → pure render → effectful `command` node — exercising checkpoints,
     `prior:`, secret resolution at the boundary, staleness/heal, drift.
-    Catalog-level plugins stay out; the real rosekube chain is the
-    catalog effort's validation, not this one's.
+    Amended by The v1 cut (2026-08-22): plus copier installable through
+    **both** bootstrap routes (bootstrap-mise → mise-install and
+    bootstrap-pixi → pixi-install) — the swappable-bootstrap contract
+    tested, not asserted. Catalog-level plugins stay out; the real
+    rosekube chain is the catalog effort's validation, not this one's.
   - Code lives in this repo, beside the docs.
   - design-v1 is the **ceiling**; The v1 cut may trim it, never exceed it.
   - Implementation language is a decision, not an inheritance — "Python
@@ -61,6 +64,12 @@ as the ceiling.
   Rust mileage plus an iteration-first year; Go dropped; Nuitka
   standalone compile guardrail in CI from scaffolding onward; port kept
   optional via language-external contracts.
+- [The v1 cut](issues/04-the-v1-cut.md) — wider than proposed: sqlite +
+  folder backends (ipfs deferred), all six built-ins, both bootstraps
+  with `pixi-install` added by design amendment, copier via both routes
+  in the acceptance bar, GC and drift and detached secrets in, public
+  SDK dogfooded by the standard plugins; uv-python and the secretspec
+  resolver deferred.
 
 ## Not yet specified
 
