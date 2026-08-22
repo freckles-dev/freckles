@@ -110,6 +110,13 @@ automatically for pure nodes, via checkpoint for effectful ones.
 An explicit, per-node confirmed run of an effectful node. Effectful nodes
 never run implicitly; auto-confirmation is a deliberate opt-in.
 
+**Checkpoint set**:
+The stale effectful nodes of a resolved configuration — what remains
+after pure staleness heals automatically, and the only thing day-2
+surfaces for confirmation. Discovered incrementally: a stale effectful
+node hides its downstream until its checkpoint runs. "Is the deployment
+current?" means "is the checkpoint set empty?"
+
 **Provenance record**:
 A separate content-addressed record of one derivation: which operation
 (plugin, version, configuration) consumed which input claims to produce which

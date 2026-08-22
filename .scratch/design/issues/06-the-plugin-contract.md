@@ -86,3 +86,21 @@ shape of the tree); effectful checkpoint UX belongs to Effects and day-2.
 
 Run /grilling and /domain-modeling. Grill against vision.md §3 (transformer),
 §7 (toolchain provisioning), open question 3.
+
+## Amendment (2026-08-22)
+
+Two changes from the design-doc review (Markus):
+
+1. The built-in set grows by `import-git`, moved from the standard set —
+   rationale and consequence in Where curation lives (amendment,
+   2026-08-22) and design.md §6.
+2. The produced-kind rule restated: the invariant is that **every node's
+   produced kind is fixed at resolution time**, not that every manifest
+   declares one. Ordinary plugins still declare exactly one kind; the
+   adapter plugins (`command`, `fetch-verify`) declare the kind
+   node-supplied, making `kind` a mandatory node-config field for them —
+   one kind per node at resolution, inference unaffected. Node config is
+   hashed into the derivation, so the supplied kind is identity like any
+   other config; annotations were rejected as the vehicle (unhashed,
+   machine-local). `command`'s consumed selectors are likewise
+   node-supplied, via the existing node-augmentable selector mechanism.

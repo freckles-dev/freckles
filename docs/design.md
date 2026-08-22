@@ -53,10 +53,10 @@ produces an **outcome**: a hashed, machine-independent **claim**
 describing what now exists, plus unhashed, machine-local **annotations**
 recording where it is realized here. Claims live in a per-user
 content-addressed **store**; effectful nodes only ever run as explicit
-**checkpoints**. Day-2 is one loop: edit the configuration, re-resolve,
-compute the **stale set** (nodes whose current claim was not produced by
-their current derivation), heal — pure nodes automatically, effectful
-nodes by checkpoint.
+**checkpoints**. Day-2 is one loop: edit the configuration, re-resolve, heal —
+**stale** nodes (current claim not produced by current derivation)
+re-derive automatically where pure; the stale effectful remainder, the
+**checkpoint set**, is confirmed per node.
 
 A five-node taste (the full chain is §10):
 
@@ -87,7 +87,7 @@ root — this section mirrors it and CONTEXT.md wins on drift. The terms:
 environment**, **effective inputs**, **plugin**, **source node**,
 **terminal node**, **outcome**, **claim**, **annotation**, **secret
 value**, **secret reference**, **credential**, **realization**, **stale**,
-**checkpoint**, **provenance record**, **store**, **ref**, **resolution
+**checkpoint**, **checkpoint set**, **provenance record**, **store**, **ref**, **resolution
 document**, **derivation index**, **trust**, **audit log**.
 
 ## 4. Outcomes
@@ -203,14 +203,23 @@ content-addressed implementation it runs.
   pinned in provenance by claim CID. Only a minimal built-in set ships
   with freckles itself to break the bootstrap circle; the freckles version
   enters provenance for built-in-produced outcomes.
-- **Manifest**: `name`, `version`, `produces` (exactly one kind,
-  statically declared — what makes resolution-time inference possible),
-  `consumes` (selectors), `effect: pure | effectful`, `platforms`,
-  `entrypoint`; optional `requires_privilege`, `verify`; named future
-  entrypoints `destroy` and `resolve` (secret references, §9). Claim
-  fields beyond `kind` are convention; per-kind conventions are curation
-  policy (§12). Deliberately absent: tool dependencies (consume tool
-  claims instead) and config schemas (the plugin's business in v1).
+- **Manifest**: `name`, `version`, `produces`, `consumes` (selectors),
+  `effect: pure | effectful`, `platforms`, `entrypoint`; optional
+  `requires_privilege`, `verify`; named future entrypoints `destroy` and
+  `resolve` (secret references, §9). The produced-kind rule: **every
+  node's produced kind is fixed at resolution time** — that is what makes
+  edge inference possible. Ordinarily the manifest declares exactly one
+  kind; the adapter plugins (`command`, `fetch-verify`) declare the kind
+  node-supplied instead, making `kind` a mandatory field of their node
+  config — still exactly one kind per node at resolution, so inference is
+  unaffected. Node config is hashed into the derivation, so a supplied
+  kind is identity like any other config — an annotation (unhashed,
+  machine-local) could never carry it. For `command`, consumed selectors
+  are likewise node-supplied, via the node-augmentable selector mechanism
+  (§5). Claim fields beyond `kind` are convention; per-kind conventions
+  are curation policy (§12). Deliberately absent: tool dependencies
+  (consume tool claims instead) and config schemas (the plugin's business
+  in v1).
 - **Enforcement split**: the runner *physically* enforces visibility —
   isolated workspace, scrubbed environment, consumed tool claims
   materialized onto a constructed PATH, content claims as files; the
@@ -222,7 +231,15 @@ content-addressed implementation it runs.
   plugins — `bootstrap-mise` (default), `bootstrap-pixi` (first-class
   peer), `mise-install`, `uv-python`, `copier`. Catalog-level plugins
   (`tofu-apply`, `flux-bootstrap`, `git-push`, …) come with curation. The
-  only true root is `fetch-verify` (§11).
+  only true root is `fetch-verify` (§11). `import-git` is deliberately
+  built-in rather than standard — a recorded amendment (2026-08-22) of
+  [Where curation lives](../.scratch/design/issues/08-where-curation-lives.md),
+  which first placed it standard: it lets a configuration bootstrap from
+  a bare git repository, which may itself carry a bootstrap binary,
+  before any plugin can be acquired. Consequence: the git fetch ships
+  inside freckles itself — a host `git` dependency would defeat the tier
+  (and is avoidable: pinned-commit fetch needs no full libgit2;
+  pure-Python implementations cover it).
 
 ## 7. Storage and addressing
 
@@ -267,12 +284,19 @@ findings; [ADR 0003](adr/0003-cidv1-addressing.md).
 Decided in [Effects and day-2](../.scratch/design/issues/07-effects-and-day-2.md).
 
 - **The loop**: edit configuration → re-resolve (pure, cheap, new
-  resolution document) → **stale set** = nodes whose current claim was not
-  produced by their new derivation (a derivation-index lookup) →
-  presented by node name → heal: pure nodes re-derive automatically,
-  effectful nodes are checkpoints → refs advance; superseded claims become
-  GC-fodder after grace. "Is the deployment current?" means "is the stale
-  set empty?".
+  resolution document) → heal, walking the DAG in topological order: each
+  node's new derivation is computed from its current input claims and
+  looked up in the derivation index — a hit means current (unless the
+  claim is locally distrusted — see drift below); a miss on a pure node
+  re-derives automatically on the spot, often re-minting the same claim,
+  which stops the ripple; a miss on an effectful node marks it **stale**
+  and puts it in the **checkpoint set** — the stale effectful nodes, the
+  only thing day-2 ever surfaces for confirmation, presented by node
+  name. A stale effectful node hides its downstream until its checkpoint
+  runs; the walk resumes past it afterwards (§10's delta B is the ripple
+  stopping exactly there). Refs advance as nodes heal; superseded claims
+  become GC-fodder after grace. "Is the deployment current?" means "is
+  the checkpoint set empty?".
 - **Checkpoints**: effectful nodes never run implicitly. The confirmation
   prompt names the node, the claim being superseded, plaintext secret
   names (§9), and privilege needs (`requires_privilege`) — never a silent
@@ -396,13 +420,14 @@ annotations), `tools/talosctl` as a legitimate terminal node, and
 Two day-2 deltas, verified on paper
 ([full walkthrough](../.scratch/design/prototype/day2.md)):
 
-- **Enable an app** (`karakeep: enabled`): stale set = exactly
-  `{k8s/push-config}`. The apps values claim and the rendered tree re-derive
-  automatically (pure); infra and flux-bootstrap are untouched because they
-  never consumed the apps values — the vision's "only push is stale"
+- **Enable an app** (`karakeep: enabled`): checkpoint set = exactly
+  `{k8s/push-config}`. The apps values claim and the rendered tree go
+  stale too but re-derive automatically (pure); infra and flux-bootstrap
+  are untouched because they never consumed the apps values — the vision's "only push is stale"
   promise, preserved *by* the granularity principle.
-- **Rotate the Proxmox token**: stale set = exactly `{infra/staging}`. The
-  checkpoint re-runs `tofu apply` with `prior:`; the cluster is unchanged,
+- **Rotate the Proxmox token**: checkpoint set = exactly
+  `{infra/staging}` — the secret import re-derives automatically first.
+  The checkpoint re-runs `tofu apply` with `prior:`; the cluster is unchanged,
   so the plugin returns the *same* claim — and because addressing is
   extensional (ADR 0001), downstream derivations see identical input CIDs
   and the ripple stops dead. A new provenance record simply records that
@@ -416,7 +441,9 @@ Decided in [Bootstrap tool evaluation](../.scratch/design/issues/03-bootstrap-to
 [The plugin contract](../.scratch/design/issues/06-the-plugin-contract.md).
 
 The only privileged root concept is **`fetch-verify`**: fetch a pinned URL,
-verify its checksum. It installs whichever bootstrap plugin a
+verify its checksum. Its produced kind is node-supplied (§6): the
+fetching node declares what the verified artifact is — a `tool`, a
+`plugin`, plain content. It installs whichever bootstrap plugin a
 configuration declares; everything else — including every other plugin —
 arrives through the DAG itself.
 

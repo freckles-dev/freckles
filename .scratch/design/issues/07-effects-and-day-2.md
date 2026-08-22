@@ -98,3 +98,17 @@ Manifest grew two optional fields here: `requires_privilege`, `verify`
 
 Run /grilling and /domain-modeling. Grill against vision.md §4 (execute
 stages), §9 (journal), open questions 5, 7.
+
+## Amendment (2026-08-22)
+
+Vocabulary sharpened during the design-doc review (Markus): "stale set"
+was doing double duty — everything stale (point 1's definition) and what
+the user must confirm. The surfaced remainder now has its own term: the
+**checkpoint set** — the stale effectful nodes, the only thing day-2
+ever presents. Sharpened alongside it: the stale set cannot be computed
+up front (a downstream node's new derivation needs its upstream's new
+claim CIDs), so the loop is a topological heal walk — pure misses heal
+as discovered, often re-minting the same claim; a stale effectful node
+hides its downstream until its checkpoint runs. "Is the deployment
+current?" = "is the checkpoint set empty?". Glossary entry added to
+CONTEXT.md; design.md §2/§8/§10 use the term.

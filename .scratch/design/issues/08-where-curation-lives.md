@@ -82,3 +82,14 @@ the first real catalog release validates the follow-up effort.
 
 Run /grilling and /domain-modeling. Grill against vision.md §2–3, §8, open
 question 2.
+
+## Amendment (2026-08-22)
+
+`import-git` moves **standard → built-in** (Markus, design-doc review):
+it must be usable before any plugin can be acquired, so a configuration
+can bootstrap from a bare git repository — one that may itself carry a
+bootstrap binary. Consequence recorded in design.md §6: the git fetch
+ships inside freckles itself (a host `git` dependency would defeat the
+tier; pinned-commit fetch needs no full libgit2 — pure-Python
+implementations cover it). Point 2 above and The plugin contract's
+built-in list are amended accordingly.
