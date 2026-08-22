@@ -51,6 +51,11 @@ as the ceiling.
   the design model in CONTEXT.md vocabulary; design.md is the entry
   point; the "Python framework" claim dropped (the language is an open
   ticket).
+- [Language ecosystem survey](issues/01-language-ecosystem-survey.md) —
+  all three candidates CID-conformant (sorting verified in source);
+  go-git's pinned-commit fetch and Go's sqlite blob gaps drop Go; survey
+  recommends Rust, with Python+PyApp the velocity-priced second;
+  decision → Implementation language.
 
 ## Not yet specified
 

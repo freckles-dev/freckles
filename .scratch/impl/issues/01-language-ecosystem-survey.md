@@ -1,10 +1,10 @@
 # Language ecosystem survey
 
 Type: research
-Status: open
-Claimed: research subagent, fired at charting (2026-08-22)
+Status: resolved
 Findings: branch `research/language-ecosystems`, file
-`docs/research/language-ecosystems.md`
+`docs/research/language-ecosystems.md` (resolved 2026-08-22; read via
+`git show research/language-ecosystems:docs/research/language-ecosystems.md`)
 
 ## Question
 
@@ -36,3 +36,39 @@ Deliverable: a comparison table plus per-language narrative with a
 recommendation, all claims cited to primary sources; unverifiable facts
 flagged. The *decision* belongs to Implementation language, not this
 survey.
+
+## Answer
+
+Full findings: `docs/research/language-ecosystems.md` on branch
+`research/language-ecosystems` (503 lines, all claims cited to primary
+sources, resolved 2026-08-22; eight facts flagged unverified/inferred in
+its final section).
+
+- **DAG-CBOR + CIDv1**: all three candidates have a conformant encoder,
+  RFC 7049 length-first key sorting verified in actual source — Python
+  `libipld` 3.4.1 (Rust-backed; the pure-Python `dag-cbor`/`multiformats`
+  pair is frozen since 2023), Go `go-ipld-prime` v0.24.0 (the exact
+  library Kubo pins, so golden-CID by construction), Rust `ipld-core` +
+  `serde_ipld_dagcbor` (the old `libipld` crate is deprecated).
+- **Embedded git fetch** (the built-in `import-git`): dulwich (Python,
+  very active) and gix (Rust, cargo's git engine) both do depth-1
+  pinned-commit fetch over smart HTTP with token auth; **go-git cannot**
+  — no protocol v2, no non-tip SHA wants — a structural misfit for
+  pinned-commit imports.
+- **Single binary**: native + cross-compiling in Go and Rust (proxies:
+  flux 24.8 MB, jj 10.7 MB compressed); Python has no native story —
+  PyApp embed ≈55–58 MB, or a ~2 MB launcher that phones home on first
+  run; uv calls standalone builds a wish, not a roadmap item.
+- **sqlite**: Python stdlib is complete (`blobopen()` since 3.11, WAL,
+  zero deps); Rust `rusqlite` complete with bundled amalgamation; Go
+  fragmented (cgo vs. missing incremental-blob APIs).
+- **Process protocol / CLI**: adequate everywhere; Python
+  (click/typer + rich) has the best ergonomics; Go (cobra + charm) and
+  Rust (clap + dialoguer/indicatif) are fine for the checkpoint UX.
+- **Survey recommendation** (the *decision* is Implementation
+  language's): **Rust**, priced honestly in velocity and 0.x API churn;
+  **Python + PyApp(embed)** the defensible second if iteration speed
+  outweighs distribution polish — noting Python's column already rides
+  on Rust underneath (PyApp, libipld, dulwich's accelerators); **Go
+  drops out** unless grilling surfaces something new, its two misfits
+  (git fetch, sqlite blobs) sitting exactly on load-bearing built-ins.
