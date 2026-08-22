@@ -1,0 +1,20 @@
+{
+  "config": {
+    "module": "talos-proxmox"
+  },
+  "inputs": {
+    "secret": {
+      "/": "bafyreiej2zma2e5zpxrp232attp2adesoq5s5p5bqyhgkamv2hytaoa7le"
+    },
+    "tool": {
+      "/": "bafyreiaavolqvylxegqxoznzz7ymp3fmre5ow3srlej4v5makpsdx7dlnm"
+    },
+    "values": {
+      "/": "bafyreid67ifndjs3g4o3epe2hc6irwez7hrj6n56cgj5o4prwfpa3biu4m"
+    }
+  },
+  "plugin": {
+    "/": "bafyreicwz5i2vxa5tludt5elmwzyzvhw3hlnezgqict6ozz5bptwoqvrvu"
+  },
+  "schema": 1
+}

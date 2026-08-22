@@ -1,0 +1,53 @@
+{
+  "config-snapshot": {
+    "/": "bafyreigra5657b2etk7tvjsrwa7emcdx5g43lci7z6tmpj2622a4adeqza"
+  },
+  "nodes": {
+    "deploy/site": {
+      "config": {
+        "cmd": [
+          "deploy.sh"
+        ],
+        "effect": "effectful",
+        "kind": "deployed-site"
+      },
+      "consumes": {
+        "file-tree": "render/site"
+      },
+      "plugin": {
+        "builtin": "command",
+        "freckles": "0.1.0"
+      },
+      "produces": "deployed-site"
+    },
+    "render/site": {
+      "config": {
+        "cmd": [
+          "render.sh"
+        ],
+        "kind": "file-tree"
+      },
+      "consumes": {
+        "values": "values/apps"
+      },
+      "plugin": {
+        "builtin": "command",
+        "freckles": "0.1.0"
+      },
+      "produces": "file-tree"
+    },
+    "values/apps": {
+      "config": {
+        "file": "cluster.yaml",
+        "key": "apps"
+      },
+      "consumes": {},
+      "plugin": {
+        "builtin": "import-values",
+        "freckles": "0.1.0"
+      },
+      "produces": "values"
+    }
+  },
+  "schema": 1
+}

@@ -1,0 +1,9 @@
+{
+  "kind": "plugin",
+  "name": "tofu-apply",
+  "payload": {
+    "/": "bafkreid6nr7mgcgxu3xl3fuodrrmgpkcjjp3ehcdnie6xjn6ibkrgkpnza"
+  },
+  "schema": 1,
+  "version": "0.4.2"
+}

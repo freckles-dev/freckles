@@ -1,0 +1,7 @@
+{
+  "kind": "tool",
+  "platform": "linux-64",
+  "schema": 1,
+  "tool": "opentofu",
+  "version": "1.8.2"
+}

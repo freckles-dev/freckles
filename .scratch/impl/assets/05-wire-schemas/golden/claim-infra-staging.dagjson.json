@@ -1,0 +1,7 @@
+{
+  "ca-fingerprint": "sha256:PROTOTYPE",
+  "endpoint": "https://10.0.50.50:6443",
+  "kind": "talos-cluster",
+  "name": "staging",
+  "schema": 1
+}

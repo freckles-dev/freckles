@@ -1,0 +1,12 @@
+{
+  "config": {
+    "file": "cluster.yaml",
+    "key": "apps"
+  },
+  "inputs": {},
+  "plugin": {
+    "builtin": "import-values",
+    "freckles": "0.1.0"
+  },
+  "schema": 1
+}

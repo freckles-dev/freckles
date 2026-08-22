@@ -1,0 +1,13 @@
+bafyreid67ifndjs3g4o3epe2hc6irwez7hrj6n56cgj5o4prwfpa3biu4m  claim-values-apps  (79 bytes dag-cbor)
+bafyreiej2zma2e5zpxrp232attp2adesoq5s5p5bqyhgkamv2hytaoa7le  claim-secret-proxmox  (108 bytes dag-cbor)
+bafyreiaavolqvylxegqxoznzz7ymp3fmre5ow3srlej4v5makpsdx7dlnm  claim-tool-opentofu  (65 bytes dag-cbor)
+bafyreicwz5i2vxa5tludt5elmwzyzvhw3hlnezgqict6ozz5bptwoqvrvu  claim-plugin-tofu-apply  (100 bytes dag-cbor)
+bafyreihkd7ksxfplevlynxjlov7c5ekzwzctnis5mvidoeh66rda2m7jfi  claim-infra-staging  (106 bytes dag-cbor)
+bafyreicqrmdbkmwyarimmj4keq73yvcivyyjhavxr4zapmxy6q76ytjbhu  derivation-infra-staging  (236 bytes dag-cbor)
+bafyreiamapl5t4fkekhy2as2lp7gisepogxedjaajai75vf6lymxio2vxq  derivation-values-apps  (97 bytes dag-cbor)
+bafyreibicmfuqh74h7fchiotjxtohopgi3mg7laopuyaf4iacg4v3ybx5a  provenance-infra-staging  (110 bytes dag-cbor)
+bafyreigra5657b2etk7tvjsrwa7emcdx5g43lci7z6tmpj2622a4adeqza  tree-config-snapshot  (82 bytes dag-cbor)
+bafyreian6zlolpd2w57mup663kubfm5dlhrxhg5suxd56ssqtn7ramugzu  resolution-skeleton  (496 bytes dag-cbor)
+bafkreihndndleyshju2y2pd3venuelrs6ogcs72gyd36pacev3gy7eli4u  blob:values
+bafkreihknne4jdhlawzrzykkbu3lkqiwruotoewrxk6emo5xys7ifhjq5u  blob:ciphertext
+bafkreid6nr7mgcgxu3xl3fuodrrmgpkcjjp3ehcdnie6xjn6ibkrgkpnza  blob:plugin-payload
