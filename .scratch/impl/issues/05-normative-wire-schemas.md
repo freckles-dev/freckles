@@ -1,7 +1,7 @@
 # Normative wire schemas
 
 Type: prototype
-Status: claimed (markus, 2026-08-22)
+Status: resolved
 
 ## Question
 
@@ -30,3 +30,40 @@ with Markus (HITL); friction feeds back into the affected design
 decisions.
 
 Run /grilling and /domain-modeling alongside /prototype.
+
+## Answer
+
+Resolved 2026-08-22. Prototype built at
+[assets/05-wire-schemas/](../assets/05-wire-schemas/) — `store.cddl`,
+`wire.cddl`, and skeleton-chain golden fixtures with real computed
+CIDv1 addresses (`uv run make_golden.py` regenerates deterministically).
+Reacted point by point; all seven verdicts by Markus. The schemas are
+**normative for v1** as of this resolution.
+
+1. **R1 — the wire is DAG-JSON, the store is DAG-CBOR** (as embodied):
+   same IPLD data model, lossless both ways, shell-scriptable with jq;
+   nothing on the wire is ever hashed as-is.
+2. **R2 — the derivation is a standalone store document and its CID
+   *is* the derivation hash**; the provenance record is pure links
+   `{derivation, outcome}` — identical derivations dedup structurally.
+3. **R3 — flat claim envelope**: `schema` + `kind` reserved at top
+   level, payload fields flat beside them.
+4. **R4 — explicit `shape` discriminator** (`value` / `reference`) on
+   secret claims — the open-set contract gets a place to grow.
+5. **R5 — the resolution document speaks names**: nodes keyed by name,
+   edges consumed-kind → provider-node-name, claim CIDs deliberately
+   absent (refs and the derivation index own that mapping).
+6. **R6 — request `inputs` keyed by consumed kind** (map), mirroring
+   the derivation's keying; widens to list-valued form only if the
+   aggregator door opens.
+7. **R7 — design gap found and closed**: the node-supplied rule extends
+   to **`effect`** for `command` — one built-in cannot be
+   manifest-statically pure *and* effectful, and the purity gate needs
+   effect at resolution. design.md §6 amended (recorded on The plugin
+   contract, amendment item 4); consequence applied here: the
+   resolution document's `resolved-node` records `effect` beside
+   `produces`, fixtures regenerated.
+
+The golden fixtures seed Testing strategy's golden-CID suite;
+relocating schemas/fixtures into the real source tree belongs to Repo
+scaffolding / Package layout and module seams.

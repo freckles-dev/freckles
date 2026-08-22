@@ -212,7 +212,11 @@ content-addressed implementation it runs.
   kind; the adapter plugins (`command`, `fetch-verify`) declare the kind
   node-supplied instead, making `kind` a mandatory field of their node
   config — still exactly one kind per node at resolution, so inference is
-  unaffected. Node config is hashed into the derivation, so a supplied
+  unaffected. The same rule extends to `effect` for `command`
+  (wire-schema ticket, 2026-08-22): an adapter wrapping an arbitrary
+  script may be pure or effectful, so its node config states `effect`,
+  fixed at resolution — where the purity gate needs it; `fetch-verify`
+  stays pure. Node config is hashed into the derivation, so a supplied
   kind is identity like any other config — an annotation (unhashed,
   machine-local) could never carry it. For `command`, consumed selectors
   are likewise node-supplied, via the node-augmentable selector mechanism

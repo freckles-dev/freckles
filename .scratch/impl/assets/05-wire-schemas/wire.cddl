@@ -1,4 +1,5 @@
-; PROTOTYPE — wayfinder ticket 05 (Normative wire schemas). Draft-normative.
+; NORMATIVE for v1 — wayfinder ticket 05, resolved 2026-08-22; all
+; reaction points ratified (verdicts in the ticket's Answer).
 ;
 ; RUNNER <-> PLUGIN WIRE — the process protocol (design.md §6, ADR 0004).
 ; Encoding decision embodied here (reaction point R1): the stdio wire is

@@ -109,3 +109,10 @@ Two changes from the design-doc review (Markus):
    named a first-class peer, but without an install analog to
    `mise-install` it can deliver no `tool` claims — the peer claim
    implied the plugin. design.md §6 amended.
+4. The node-supplied rule extends to `effect` for `command` (exposed by
+   the implementation map's Normative wire schemas, 2026-08-22): one
+   `command` built-in cannot be manifest-statically pure *and*
+   effectful, so its node config states `effect`, fixed at resolution —
+   where the purity gate (ADR 0005) needs it. `fetch-verify` remains
+   pure. design.md §6 amended; the resolution document records resolved
+   `effect` beside `produces`.

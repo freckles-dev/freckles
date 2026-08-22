@@ -106,18 +106,21 @@ put("resolution-skeleton", {
         "values/apps": {
             "plugin": {"builtin": "import-values", "freckles": "0.1.0"},
             "produces": "values",
+            "effect": "pure",
             "config": {"file": "cluster.yaml", "key": "apps"},
             "consumes": {},
         },
         "render/site": {
             "plugin": {"builtin": "command", "freckles": "0.1.0"},
             "produces": "file-tree",
-            "config": {"kind": "file-tree", "cmd": ["render.sh"]},
+            "effect": "pure",
+            "config": {"kind": "file-tree", "effect": "pure", "cmd": ["render.sh"]},
             "consumes": {"values": "values/apps"},
         },
         "deploy/site": {
             "plugin": {"builtin": "command", "freckles": "0.1.0"},
             "produces": "deployed-site",
+            "effect": "effectful",
             "config": {"kind": "deployed-site", "effect": "effectful", "cmd": ["deploy.sh"]},
             "consumes": {"file-tree": "render/site"},
         },

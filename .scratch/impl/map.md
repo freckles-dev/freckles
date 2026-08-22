@@ -70,6 +70,13 @@ as the ceiling.
   in the acceptance bar, GC and drift and detached secrets in, public
   SDK dogfooded by the standard plugins; uv-python and the secretspec
   resolver deferred.
+- [Normative wire schemas](issues/05-normative-wire-schemas.md) —
+  DAG-JSON wire over a DAG-CBOR store; the derivation is a standalone
+  document whose CID is the derivation hash (provenance = pure links);
+  flat claims, explicit secret `shape`, name-speaking resolution
+  document, kind-keyed inputs; golden fixtures with real CIDs
+  committed; a second adapter gap closed (node-supplied `effect` for
+  `command`, design amended).
 
 ## Not yet specified
 

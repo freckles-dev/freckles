@@ -14,6 +14,7 @@
       "consumes": {
         "file-tree": "render/site"
       },
+      "effect": "effectful",
       "plugin": {
         "builtin": "command",
         "freckles": "0.1.0"
@@ -25,11 +26,13 @@
         "cmd": [
           "render.sh"
         ],
+        "effect": "pure",
         "kind": "file-tree"
       },
       "consumes": {
         "values": "values/apps"
       },
+      "effect": "pure",
       "plugin": {
         "builtin": "command",
         "freckles": "0.1.0"
@@ -42,6 +45,7 @@
         "key": "apps"
       },
       "consumes": {},
+      "effect": "pure",
       "plugin": {
         "builtin": "import-values",
         "freckles": "0.1.0"

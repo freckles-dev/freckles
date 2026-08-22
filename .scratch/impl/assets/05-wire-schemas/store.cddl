@@ -1,6 +1,5 @@
-; PROTOTYPE — wayfinder ticket 05 (Normative wire schemas). Draft-normative:
-; becomes normative when the ticket resolves; field names final unless a
-; reaction point overturns them.
+; NORMATIVE for v1 — wayfinder ticket 05, resolved 2026-08-22; all
+; reaction points ratified (verdicts in the ticket's Answer).
 ;
 ; STORE DOCUMENTS — everything here is spec-strict DAG-CBOR (design.md §7,
 ; ADR 0003): string-keyed maps, lists, strings, 64-bit ints, bools, null,
@@ -103,6 +102,8 @@ resolution = {
 resolved-node = {
   plugin: plugin-id,         ; pinned (claim CID, or builtin + version)
   produces: tstr,            ; the node's produced kind, fixed at resolution
+  effect: "pure" / "effectful",       ; likewise resolution-fixed (R7 — the
+                             ; purity gate and heal walk read it here)
   config: {*tstr => value},
   consumes: {*tstr => tstr}  ; consumed kind -> provider node name
 }

@@ -1,9 +1,14 @@
-# PROTOTYPE — normative wire schemas (wayfinder ticket 05)
+# Normative wire schemas (wayfinder ticket 05)
 
-Draft-normative schemas for every document freckles v1 hashes or speaks,
-plus golden fixtures with **real computed CIDs**. React; on resolution
-these become the normative v1 schemas and the fixtures seed Testing
-strategy's golden-CID suite.
+Schemas for every document freckles v1 hashes or speaks, plus golden
+fixtures with **real computed CIDs** that seed Testing strategy's
+golden-CID suite.
+
+> Reacted 2026-08-22 — all seven points ratified as embodied (R3 flat,
+> R4 explicit, R6 map confirmed); R7 resolved as node-supplied `effect`
+> for `command`, with `effect` added to `resolved-node`. Verdicts in
+> [the ticket's Answer](../../issues/05-normative-wire-schemas.md).
+> **Normative for v1** since resolution.
 
 ## Reading order
 
