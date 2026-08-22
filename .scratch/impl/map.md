@@ -82,6 +82,12 @@ as the ceiling.
   heals pures to name the exact checkpoint set, day2-style checkpoint
   prompt, name-first output, paste-ready ambiguity fix, 0/1/2 exit
   contract, `show` + `store cat` inspection, verb inventory final.
+- [Stack and libraries](issues/07-stack-and-libraries.md) — libipld in
+  production with the hashberg pair cross-checking every golden fixture
+  in tests; click + rich; dataclasses + explicit codecs (no validation
+  framework); Python ≥3.12; stdlib sqlite3/subprocess/logging; dulwich;
+  audit log = schema-versioned JSON-lines prepared for external
+  consumption.
 
 ## Not yet specified
 
