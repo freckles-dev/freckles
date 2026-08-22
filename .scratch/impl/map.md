@@ -47,6 +47,11 @@ as the ceiling.
 
 <!-- one line per closed ticket: gist + link -->
 
+- [README refresh](issues/03-readme-refresh.md) — README rewritten to
+  the design model in CONTEXT.md vocabulary; design.md is the entry
+  point; the "Python framework" claim dropped (the language is an open
+  ticket).
+
 ## Not yet specified
 
 - Parallel/concurrent node execution — the design promises nothing;
