@@ -33,7 +33,7 @@ as the ceiling.
   - design-v1 is the **ceiling**; The v1 cut may trim it, never exceed it.
   - Implementation language is a decision, not an inheritance — "Python
     framework" came from the vision doc and was never decided.
-- If the language decision lands on Python: use
+- The language decision landed on Python (ADR 0006): use
   [frkl-dev/python-project-template](https://github.com/frkl-dev/python-project-template)
   and its tooling (uv; hatch build/publish with git-tag versioning; CI
   for tests/lint/typecheck; wheel/sdist + conda; justfile).
@@ -56,6 +56,11 @@ as the ceiling.
   go-git's pinned-commit fetch and Go's sqlite blob gaps drop Go; survey
   recommends Rust, with Python+PyApp the velocity-priced second;
   decision → Implementation language.
+- [Implementation language](issues/02-implementation-language.md) —
+  **Python** ([ADR 0006](../../docs/adr/0006-python-for-v1.md)): no
+  Rust mileage plus an iteration-first year; Go dropped; Nuitka
+  standalone compile guardrail in CI from scaffolding onward; port kept
+  optional via language-external contracts.
 
 ## Not yet specified
 
