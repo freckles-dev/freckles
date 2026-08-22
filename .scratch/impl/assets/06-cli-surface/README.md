@@ -1,8 +1,11 @@
-# PROTOTYPE — CLI surface v1 (wayfinder ticket 06)
+# CLI surface v1 (wayfinder ticket 06)
 
-One artifact: [transcript.md](transcript.md) — the proposed v1 CLI as a
-mock terminal session over the walking-skeleton chain. React to the
-scenes; verdicts land in the ticket's Answer.
+One artifact: [transcript.md](transcript.md) — the v1 CLI as a mock
+terminal session over the walking-skeleton chain.
+
+> Reacted 2026-08-22 — **all eight points ratified as embodied**;
+> verdicts in [the ticket's Answer](../../issues/06-cli-surface-v1.md).
+> The agreed surface for v1 since resolution.
 
 ## Decisions embodied — react to these
 

@@ -77,6 +77,11 @@ as the ceiling.
   document, kind-keyed inputs; golden fixtures with real CIDs
   committed; a second adapter gap closed (node-supplied `effect` for
   `command`, design amended).
+- [CLI surface v1](issues/06-cli-surface-v1.md) — all eight points
+  ratified: `heal` is the verb (day-1 = day-2 from zero), `status`
+  heals pures to name the exact checkpoint set, day2-style checkpoint
+  prompt, name-first output, paste-ready ambiguity fix, 0/1/2 exit
+  contract, `show` + `store cat` inspection, verb inventory final.
 
 ## Not yet specified
 

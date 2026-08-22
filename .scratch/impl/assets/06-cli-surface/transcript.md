@@ -1,7 +1,8 @@
-# PROTOTYPE — the freckles v1 CLI, as a mock terminal session
+# The freckles v1 CLI — agreed surface (wayfinder ticket 06)
 
-Wayfinder ticket 06. Nothing here runs; every byte of output is a design
-proposal. The chain is the walking-skeleton chain plus one secret
+Ratified 2026-08-22, all eight reaction points as embodied. Nothing here
+runs; the *decisions* (verbs, prompt shape, exit codes, redaction) are
+binding for v1, the literal output text stays illustrative. The chain is the walking-skeleton chain plus one secret
 (`values/apps` → `render/site` → `deploy/site`, with
 `secrets/deploy-token` consumed by the deploy). Names and vocabulary are
 CONTEXT.md's; CIDs are abbreviated `bafyre…xxx` per reaction point R4.
