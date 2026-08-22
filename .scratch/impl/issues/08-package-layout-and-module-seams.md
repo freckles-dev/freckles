@@ -1,7 +1,7 @@
 # Package layout and module seams
 
 Type: grilling
-Status: open
+Status: claimed (markus, 2026-08-22)
 Blocked by: 02
 
 ## Question
