@@ -1,7 +1,7 @@
 # The v1 cut
 
 Type: grilling
-Status: open
+Status: claimed (markus, 2026-08-22)
 
 ## Question
 
