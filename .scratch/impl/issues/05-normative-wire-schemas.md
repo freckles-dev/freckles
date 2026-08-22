@@ -1,7 +1,7 @@
 # Normative wire schemas
 
 Type: prototype
-Status: open
+Status: claimed (markus, 2026-08-22)
 
 ## Question
 
