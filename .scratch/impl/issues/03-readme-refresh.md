@@ -1,7 +1,7 @@
 # README refresh
 
 Type: task
-Status: open
+Status: claimed (markus, 2026-08-22)
 
 ## Question
 
