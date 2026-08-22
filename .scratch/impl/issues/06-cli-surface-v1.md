@@ -1,7 +1,7 @@
 # CLI surface v1
 
 Type: prototype
-Status: open
+Status: claimed (markus, 2026-08-22)
 
 ## Question
 
