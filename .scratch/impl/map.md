@@ -88,6 +88,12 @@ as the ceiling.
   framework); Python ≥3.12; stdlib sqlite3/subprocess/logging; dulwich;
   audit log = schema-versioned JSON-lines prepared for external
   consumption.
+- [Package layout and module seams](issues/08-package-layout-and-module-seams.md)
+  — nine modules with the §7 in/out line as a package boundary
+  (store vs `state`); built-ins in-process behind the same document
+  interface (two runner adapters); standard plugins in-repo under
+  `plugins/`; public surface = CLI + sdk only; names are glossary
+  terms. Layout doc in assets.
 
 ## Not yet specified
 
