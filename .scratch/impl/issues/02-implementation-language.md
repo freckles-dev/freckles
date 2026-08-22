@@ -1,7 +1,7 @@
 # Implementation language
 
 Type: grilling
-Status: open
+Status: claimed (markus, 2026-08-22)
 Blocked by: 01
 
 ## Question
