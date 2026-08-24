@@ -51,3 +51,10 @@ ecosystem survey §2 (branch `research/language-ecosystems`).
 
 Deliberately unpinned: exact dependency versions (Repo scaffolding),
 the dulwich SSH vendor, the final audit-record field list.
+
+Addendum (Walking skeleton, 2026-08-24): **pyyaml** joins the pinned
+stack — configuration loading (`freckles.yaml`, values files) needs a
+YAML parser and this ticket never named one. Also confirmed in
+practice: libipld ships no DAG-JSON codec, so the wire form is
+hand-written in `documents` (two special forms over stdlib json), as
+the codec-module decision already allowed.

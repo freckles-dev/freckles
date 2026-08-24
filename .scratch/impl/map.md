@@ -121,6 +121,14 @@ as the ceiling.
   project-owned workflow, built post-skeleton per Milestones; guardrail
   switched to onefile; hidden CI-only `selftest` grows with the organs
   (sqlite, dulwich).
+- [Walking skeleton](issues/12-walking-skeleton.md) — the loop runs:
+  resolve → run → heal on a real CIDv1 sqlite store, both runner
+  adapters live (in-process built-ins + spawned wire-speaking fakes),
+  checkpoint set and `prior:` proven under the suite and by hand
+  (transcript in assets); the walk mints a golden-checked derivation.
+  Frictions fed back: the source-rerun rule (design.md §8 amendment
+  proposed, awaiting ratification), pyyaml stack addendum, and the
+  plugin-content-ingestion fog patch.
 
 ## Not yet specified
 
@@ -134,6 +142,11 @@ as the ceiling.
 - Plugin runtime limits (timeouts, resource caps) — the design
   specifies no semantics; surfaced by Testing strategy's misbehavior
   battery (hang handling deliberately excluded from the v1 suite).
+- Plugin content ingestion — built-ins ingest produced files into the
+  CAS as trusted core, but the wire protocol has no channel for a
+  spawned plugin to land blobs in the store; needed the moment a
+  standard plugin produces a file-tree (copier). Surfaced by the
+  Walking skeleton.
 
 ## Out of scope
 
