@@ -19,13 +19,14 @@
 
 """Click commands — a thin verb layer over the core modules.
 
-The ratified CLI surface (heal, status, show, …) lands post-skeleton per its
-prototype. What exists here now: `--version`; a hidden `selftest` (CI-only —
-the frozen-binary organ check from Packaging and distribution); and a hidden
-`dev` group (the walking skeleton's raw dev commands — deliberately not the
-surface).
+The ratified CLI surface (CLI surface v1, wayfinder ticket 06): the
+configuration is the current directory; the per-user store and machine state
+live under the data dir — `--data-dir` option over `FRECKLES_DATA_DIR` over
+the XDG default. Also here: `--version` and a hidden `selftest` (CI-only —
+the frozen-binary organ check from Packaging and distribution).
 """
 
+import os
 from pathlib import Path
 
 import click
@@ -33,10 +34,45 @@ import click
 from freckles._version import version
 
 
+def _data_dir() -> Path:
+    env = os.environ.get("FRECKLES_DATA_DIR")
+    if env:
+        return Path(env)
+    xdg = os.environ.get("XDG_DATA_HOME")
+    base = Path(xdg) if xdg else Path.home() / ".local" / "share"
+    return base / "freckles"
+
+
 @click.group()
 @click.version_option(version, prog_name="freckles")
 def main() -> None:
     """Turn declarative configuration into running infrastructure."""
+
+
+@main.command()
+@click.option("--yes", is_flag=True, help="Auto-confirm every checkpoint.")
+def heal(yes: bool) -> None:
+    """Resolve the configuration in the current directory and heal it."""
+    from freckles.heal import heal as heal_walk
+    from freckles.resolver import resolve
+
+    config_dir = Path.cwd()
+    ctx, index = _context(config_dir, _data_dir())
+    resolution, _ = resolve(config_dir, ctx.store, version, config_dir.name)
+
+    def confirm(name: str) -> bool:
+        if yes:
+            click.echo(f"  {name}  auto-confirmed")
+            return True
+        return click.confirm(f"  {name}  proceed?", default=False)
+
+    report = heal_walk(resolution, config_dir.name, ctx, index, confirm)
+    for name in report.healed:
+        click.echo(f"  {name}  healed")
+    if report.deployment_current:
+        click.echo("deployment current — checkpoint set empty.")
+    else:
+        raise SystemExit(2)
 
 
 @main.command(hidden=True)
