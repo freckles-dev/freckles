@@ -63,13 +63,17 @@ class CliWorld:
 """
         )
 
-    def invoke(self, *args: str, input: str | None = None) -> Result:
+    def invoke(
+        self,
+        *args: str,
+        input: str | None = None,
+        env: dict[str, str | None] | None = None,
+    ) -> Result:
+        merged: dict[str, str | None] = {"FRECKLES_DATA_DIR": str(self.data_dir)}
+        if env:
+            merged.update(env)
         return self.runner.invoke(
-            main,
-            list(args),
-            input=input,
-            env={"FRECKLES_DATA_DIR": str(self.data_dir)},
-            catch_exceptions=False,
+            main, list(args), input=input, env=merged, catch_exceptions=False
         )
 
 

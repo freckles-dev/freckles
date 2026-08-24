@@ -52,6 +52,9 @@ def _resolve_or_die(config_dir: Path, store):
 
 
 def _data_dir() -> Path:
+    option = click.get_current_context().find_root().params.get("data_dir")
+    if option is not None:
+        return option
     env = os.environ.get("FRECKLES_DATA_DIR")
     if env:
         return Path(env)
@@ -62,7 +65,13 @@ def _data_dir() -> Path:
 
 @click.group()
 @click.version_option(version, prog_name="freckles")
-def main() -> None:
+@click.option(
+    "--data-dir",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Store and machine state live here (over FRECKLES_DATA_DIR, over XDG).",
+)
+def main(data_dir: Path | None) -> None:
     """Turn declarative configuration into running infrastructure."""
 
 
