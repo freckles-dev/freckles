@@ -129,3 +129,27 @@ def test_adapter_without_kind_or_effect_is_a_hard_error(store, tmp_path):
     )
     with pytest.raises(ResolutionError, match="node-supplied kind/effect"):
         resolve(directory, store, "0.0.0-test")
+
+
+def test_purity_gate_rejects_plaintext_wiring_into_a_pure_node(store, tmp_path):
+    """ADR 0005: wiring a secret's plaintext into a pure node is a hard error."""
+    directory = tmp_path / "impure"
+    directory.mkdir()
+    (directory / "freckles.yaml").write_text(
+        """
+nodes:
+  secrets/token:
+    op: import-sops
+    config: {file: secrets.sops.yaml, key: token}
+  render/site:
+    op: command
+    consumes: [secret]
+    config:
+      kind: file-tree
+      effect: pure
+      cmd: [render.sh]
+      secret-env: {TOKEN: secret}
+"""
+    )
+    with pytest.raises(ResolutionError, match="purity"):
+        resolve(directory, store, "0.0.0-test")

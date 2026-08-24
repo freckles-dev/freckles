@@ -62,6 +62,12 @@ def resolve(
 
     nodes: dict[str, ResolvedNode] = {}
     for node_name, (plugin, produces, effect, consumed_kinds) in facts.items():
+        node_config = declared[node_name].get("config", {})
+        if effect == "pure" and "secret-env" in node_config:
+            raise ResolutionError(
+                f"{node_name}: purity gate — secret-env wires plaintext into a "
+                "pure node; plaintext reaches effectful operations only (ADR 0005)"
+            )
         use: dict[str, str] = declared[node_name].get("use", {})
         consumes: dict[str, str] = {}
         for kind in consumed_kinds:

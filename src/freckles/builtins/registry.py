@@ -145,6 +145,19 @@ def _command(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
         (workspace / "prior.json").write_text(to_wire(request["prior"]))
 
     env = scrubbed_env(request["workspace"]["path"], workspace)
+    for env_name, kind in config.get("secret-env", {}).items():
+        # ADR 0005: the runner injected `resolved:` in memory; hand it to the
+        # wrapped process through its environment only — never argv, never disk.
+        resolved = request["inputs"].get(kind, {}).get("resolved")
+        if resolved is None:
+            return {
+                "schema": SCHEMA,
+                "error": {
+                    "message": f"secret-env {env_name}: no resolved plaintext "
+                    f"for consumed kind {kind!r}"
+                },
+            }
+        env[env_name] = resolved["value"]
     completed = subprocess.run(
         config["cmd"],
         capture_output=True,

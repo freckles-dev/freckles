@@ -129,6 +129,29 @@ def test_tampered_ciphertext_fails_authentication(ctx, sops_lab):
         build_request("deploy/site", consumer("effectful"), inputs, "/ws", [], None)
 
 
+def test_command_secret_env_hands_plaintext_to_the_wrapped_process(ctx, sops_lab):
+    """The effectful command adapter: config-named env vars, in memory only."""
+    inputs = {"secret": imported_secret(ctx, sops_lab, "hunter2-plaintext")}
+    node = ResolvedNode(
+        plugin=COMMAND,
+        produces="deployed-site",
+        effect="effectful",
+        config={
+            "kind": "deployed-site",
+            "effect": "effectful",
+            # the wrapped command attests receipt: wrong or absent env fails it
+            "cmd": ["sh", "-c", 'test "$TOKEN" = hunter2-plaintext'],
+            "secret-env": {"TOKEN": "secret"},
+            "claim": {"site": "demo"},
+        },
+        consumes={"secret": "secrets/deploy-token"},
+    )
+
+    outcome = run_node("deploy/site", node, inputs, ctx)
+
+    assert outcome.claim["site"] == "demo"
+
+
 def test_missing_age_key_fails_cleanly(ctx, sops_lab, monkeypatch):
     import pytest
 
