@@ -3,9 +3,10 @@ name: "freckles guardrails"
 # `copier update` never touches it. Two standing guardrails:
 #   - golden-fixtures: the Testing-strategy regenerate-and-diff — the committed
 #     conformance fixtures and their generator cannot silently diverge.
-#   - nuitka-standalone: the ADR 0006 rider — the package (with its compiled
-#     libipld dependency) must survive a Nuitka standalone compile and answer
-#     a smoke run, from scaffolding onward.
+#   - nuitka-onefile: the ADR 0006 rider — the package (with its compiled
+#     libipld dependency) must survive a Nuitka onefile compile and answer a
+#     smoke run, from scaffolding onward. Onefile because that is the released
+#     artifact form (Packaging and distribution): CI proves the shipped mode.
 on: [push]
 
 concurrency:
@@ -29,8 +30,8 @@ jobs:
       - name: assert committed fixtures unchanged
         run: git diff --exit-code -- conformance/
 
-  nuitka-standalone:
-    name: nuitka standalone compile + smoke run
+  nuitka-onefile:
+    name: nuitka onefile compile + smoke run
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -40,12 +41,12 @@ jobs:
       - uses: ./.github/actions/setup-uv-env
       - name: install compile group
         run: uv sync --locked --group compile
-      - name: compile standalone binary
+      - name: compile onefile binary
         run: >
-          uv run nuitka --standalone --assume-yes-for-downloads
+          uv run nuitka --onefile --assume-yes-for-downloads
           --output-dir=build/nuitka scripts/nuitka_entry.py
       - name: smoke-run the binary
         run: |
-          out=$(./build/nuitka/nuitka_entry.dist/nuitka_entry.bin --version)
+          out=$(./build/nuitka/nuitka_entry.bin --version)
           echo "$out"
           echo "$out" | grep -q freckles

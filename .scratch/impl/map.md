@@ -112,6 +112,15 @@ as the ceiling.
   (golden regen-diff + Nuitka standalone) — all checks green locally;
   first Nuitka data point 41 s / 42 MB. CI pending the HITL push to
   the new `freckles-dev/freckles` repo.
+- [Packaging and distribution](issues/09-packaging-and-distribution.md)
+  — Nuitka onefile is the released artifact (PyApp-embed the named
+  fallback with a CI-fired trigger); binary-first install story via
+  GitHub Releases + SHA256SUMS (pinned URL + checksum = complete
+  install), PyPI and conda riding along; linux x86_64 + aarch64 at v1
+  (macOS/Windows binaries deferred); tag-gated release matrix in the
+  project-owned workflow, built post-skeleton per Milestones; guardrail
+  switched to onefile; hidden CI-only `selftest` grows with the organs
+  (sqlite, dulwich).
 
 ## Not yet specified
 
