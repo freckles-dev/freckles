@@ -1,0 +1,75 @@
+default_language_version:
+    python: python3
+
+repos:
+- repo: https://github.com/astral-sh/uv-pre-commit
+  # uv version.
+  rev: 0.8.7
+  hooks:
+    # Keeps the committed uv.lock in sync with pyproject.toml (it re-locks on
+    # dependency changes; upgrades within existing constraints come from the
+    # weekly dependency-refresh workflow).
+    - id: uv-lock
+
+- repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+  rev: 'v9.20.0'
+  hooks:
+    - id: commitlint
+      stages: [commit-msg]
+      additional_dependencies: ['@commitlint/config-conventional']
+
+# Run the type checker. This is a local hook rather than facebook/pyrefly-pre-commit
+# because neither upstream option works for a template: the managed env would need every
+# project dependency listed in `additional_dependencies`, and `language: system` cannot
+# find `pyrefly` when git runs the hook outside an activated venv. Going through `uv run`
+# uses the project's own venv, so the hook, the CLI and CI all share one pyrefly version
+# (the `pyrefly` dev dependency).
+- repo: local
+  hooks:
+    - id: pyrefly-check
+      name: pyrefly check
+      entry: uv run pyrefly check
+      language: system
+      types_or: [python, pyi]
+      pass_filenames: false
+      require_serial: true
+
+- repo: https://github.com/emzeat/mz-lictools
+  rev: v2.9.0
+  hooks:
+    - id: license-tools
+
+- repo: https://github.com/asottile/pyupgrade
+  rev: v3.21.2
+  hooks:
+    -   id: pyupgrade
+        # Keep in step with ruff's `target-version`, otherwise the two disagree about
+        # which syntax is allowed to be rewritten.
+        args: [--py312-plus]
+
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  # Ruff version. Keep in sync with the `ruff` dev dependency, otherwise the
+  # hook and `just lint` disagree and fight over the same files.
+  rev: v0.16.3
+  hooks:
+    - id: ruff-check
+      args: [ --fix ]
+    - id: ruff-format
+
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.6.0  # Use the ref you want to point at
+  hooks:
+  - id: trailing-whitespace
+  - id: check-added-large-files
+  - id: check-ast
+  - id: check-json
+  - id: check-merge-conflict
+  - id: check-xml
+  - id: check-yaml
+  - id: debug-statements
+  - id: end-of-file-fixer
+    exclude: '\.json$'
+  - id: mixed-line-ending
+    args: ['--fix=no']
+  - id: no-commit-to-branch
+    args: [--branch, main]

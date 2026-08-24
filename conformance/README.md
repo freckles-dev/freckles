@@ -1,14 +1,19 @@
 # Normative wire schemas (wayfinder ticket 05)
 
 Schemas for every document freckles v1 hashes or speaks, plus golden
-fixtures with **real computed CIDs** that seed Testing strategy's
-golden-CID suite.
+fixtures with **real computed CIDs**. This directory is deliberately
+**data-only and language-agnostic** — the language-external contract a
+port would be held to ("Testing strategy"). The test suite asserts three
+things over every fixture: codec round-trip to the committed CID,
+libipld↔hashberg byte-identity, and a CI regenerate-and-diff via
+`make_golden.py`.
 
 > Reacted 2026-08-22 — all seven points ratified as embodied (R3 flat,
 > R4 explicit, R6 map confirmed); R7 resolved as node-supplied `effect`
 > for `command`, with `effect` added to `resolved-node`. Verdicts in
-> [the ticket's Answer](../../issues/05-normative-wire-schemas.md).
-> **Normative for v1** since resolution.
+> [the ticket's Answer](../.scratch/impl/issues/05-normative-wire-schemas.md).
+> **Normative for v1** since resolution; relocated here from the ticket
+> assets by Repo scaffolding.
 
 ## Reading order
 
@@ -22,7 +27,7 @@ golden-CID suite.
    manifest. Every CID is real CIDv1/sha2-256 over spec-strict DAG-CBOR
    (hashberg `dag-cbor` — length-first key order verified).
 
-## Decisions embodied — react to these
+## Decisions embodied
 
 - **R1 — the wire is DAG-JSON, the store is DAG-CBOR.** Same IPLD data
   model, lossless both ways (links `{"/": "bafy…"}`, bytes

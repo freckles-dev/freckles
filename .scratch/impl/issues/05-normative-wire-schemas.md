@@ -34,7 +34,8 @@ Run /grilling and /domain-modeling alongside /prototype.
 ## Answer
 
 Resolved 2026-08-22. Prototype built at
-[assets/05-wire-schemas/](../assets/05-wire-schemas/) — `store.cddl`,
+[conformance/](../../../conformance/) (originally
+`assets/05-wire-schemas/`, relocated by Repo scaffolding) — `store.cddl`,
 `wire.cddl`, and skeleton-chain golden fixtures with real computed
 CIDv1 addresses (`uv run make_golden.py` regenerates deterministically).
 Reacted point by point; all seven verdicts by Markus. The schemas are

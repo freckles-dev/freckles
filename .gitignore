@@ -1,1 +1,25 @@
+# project-files
+src/freckles/_version.py
+# uv.lock is committed on purpose: it pins the dev/CI environment (never consumers),
+# CI verifies against it with `uv sync --locked`, and the weekly dependency-refresh
+# workflow keeps it from going stale.
+pixi.lock
+.pixi/
+# rattler-build's default output directory
+output/
+# nuitka guardrail output
+build/
+.venv/
+
+# tool caches / outputs
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+
+# misc
 .idea/
+.init.log
+.vscode

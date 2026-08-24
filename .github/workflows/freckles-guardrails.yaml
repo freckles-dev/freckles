@@ -1,0 +1,51 @@
+name: "freckles guardrails"
+# Project-owned workflow, deliberately outside the template's files so
+# `copier update` never touches it. Two standing guardrails:
+#   - golden-fixtures: the Testing-strategy regenerate-and-diff — the committed
+#     conformance fixtures and their generator cannot silently diverge.
+#   - nuitka-standalone: the ADR 0006 rider — the package (with its compiled
+#     libipld dependency) must survive a Nuitka standalone compile and answer
+#     a smoke run, from scaffolding onward.
+on: [push]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  golden-fixtures:
+    name: golden fixtures regenerate cleanly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      # PEP 723 script: uv gives it an isolated env with the hashberg pair,
+      # independent of the project's production encoder.
+      - name: regenerate golden fixtures
+        run: uv run conformance/golden/make_golden.py
+      - name: assert committed fixtures unchanged
+        run: git diff --exit-code -- conformance/
+
+  nuitka-standalone:
+    name: nuitka standalone compile + smoke run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # uv-dynamic-versioning derives the version from git history/tags.
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-uv-env
+      - name: install compile group
+        run: uv sync --locked --group compile
+      - name: compile standalone binary
+        run: >
+          uv run nuitka --standalone --assume-yes-for-downloads
+          --output-dir=build/nuitka scripts/nuitka_entry.py
+      - name: smoke-run the binary
+        run: |
+          out=$(./build/nuitka/nuitka_entry.dist/nuitka_entry.bin --version)
+          echo "$out"
+          echo "$out" | grep -q freckles

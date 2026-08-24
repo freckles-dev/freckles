@@ -1,0 +1,162 @@
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[project]
+name = "freckles"
+description = "Turns minimal declarative configuration into running infrastructure and IT state through a DAG of content-addressed operations."
+authors = [
+    {name = "Markus Binsteiner", email = "markus@frkl.dev"}
+]
+readme = "README.md"
+# No upper bound on purpose: capping requires-python makes pip back-solve to old
+# package versions on future Pythons instead of failing with a clear message.
+requires-python = ">=3.12"
+keywords = []
+license = "AGPL-3.0-only"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14"
+]
+# The pinned v1 stack (wayfinder ticket "Stack and libraries"): libipld owns
+# DAG-CBOR/CID encoding in production; click + rich carry the CLI; dulwich is the
+# embedded git fetch for import-git. Exact version pins stay loose until first code.
+dependencies = [
+    "click",
+    "dulwich",
+    "libipld",
+    "rich",
+]
+dynamic = ["version"]
+
+[project.scripts]
+freckles = "freckles.cli:main"
+
+[dependency-groups]
+dev = [
+    # dag-cbor + multiformats are the hashberg cross-check pair: tests encode every
+    # golden fixture (and every test-minted document) with both libipld and this pair
+    # and assert identical bytes + CID ("Testing strategy", dual-encoder cross-check).
+    "dag-cbor",
+    "devtools",
+    "icecream",
+    "multiformats[full]",
+    "pre-commit",
+    "pyrefly",
+    "pytest",
+    "pytest-cov",
+    "rich",
+    "ruff",
+    "snoop",
+    "ty",
+    "wat"
+]
+# Kept out of the default dev sync: nuitka is only needed by the standalone-compile
+# guardrail (ADR 0006 rider) — `uv sync --group compile`.
+compile = [
+    "nuitka",
+    # nuitka standalone mode needs the patchelf binary on linux; the PyPI wheel
+    # provides it without a system package.
+    "patchelf; sys_platform == 'linux'",
+]
+
+[project.urls]
+homepage = "https://github.com/freckles-dev/freckles"
+documentation = "https://freckles-dev.github.io/freckles"
+repository = "https://github.com/freckles-dev/freckles"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+fallback-version = "0.0.0"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/freckles"]
+
+[tool.hatch.build.hooks.version]
+path = "src/freckles/_version.py"
+template = '''version = "{version}"
+'''
+
+[tool.uv-dynamic-versioning]
+pattern = "default-unprefixed"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+# No markers on purpose ("Testing strategy": one undivided suite, no fast/slow
+# split); --strict-markers makes any accidental marker use fail loudly.
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    "--color=yes"
+]
+
+[tool.ruff]
+line-length = 88
+
+src = ["src", "tests"]
+
+# No `fix = true` here on purpose: with it, a bare `ruff check` (e.g. in CI) applies
+# fixes and exits 0, so fixable violations pass silently. Fixing is opted into where
+# it is wanted: `just lint` and the pre-commit hook both pass `--fix` explicitly.
+
+# The oldest Python the project supports, so ruff does not suggest anything newer.
+target-version = "py312"
+
+[tool.ruff.lint]
+# The ruff defaults (E4, E7, E9, F) plus the rule families this file actually
+# configures: import sorting (I, see `[tool.ruff.lint.isort]`), bugbear and
+# blind-except (B, BLE, see `per-file-ignores`), docstring style (D, see
+# `[tool.ruff.lint.pydocstyle]`) and implicit string concatenation (ISC).
+select = ["E4", "E7", "E9", "F", "I", "B", "BLE", "ISC", "D"]
+ignore = [
+    "D1",     # missing docstrings are allowed; existing ones are still checked
+    "ISC001", # single-line implicit concat conflicts with `ruff format`
+]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+# The debug helpers in this file attach names to `builtins` on purpose:
+#   B010   ruff prefers `builtins.x = y`, but `ty` then reports `unresolved-attribute`,
+#          so `setattr` is the only spelling both tools accept. pyrefly accepts either
+#          form, but ty still runs via `just typecheck-ty` -- keep `setattr`.
+#   BLE001 the rich fallback has to catch whatever formatting an arbitrary object raises.
+"src/freckles/_debug.py" = ["B010", "BLE001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["freckles"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pyrefly]
+# The default type checker (`just typecheck`). `project-includes` mirrors ruff's `src`
+# setting above, and its presence silences pyrefly's "run `pyrefly init`" notice.
+# `python-version` is deliberately unset so each leg of the CI matrix checks the Python
+# it actually runs on.
+project-includes = ["src", "tests"]
+
+[tool.ty.rules]
+unused-ignore-comment = "ignore"
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["linux-64", "win-64", "osx-64", "osx-arm64"]
+
+[tool.pixi.dependencies]
+python = ">=3.12"
+pip = ">=25.0"
+
+[tool.pixi.pypi-dependencies]
+"freckles" = { path = ".", editable = true }
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+dev = { features = ["dev"] }  # should be the same solve-group, but that doesn't seem to work with pixi currently

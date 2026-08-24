@@ -1,0 +1,53 @@
+name: "weekly dependency refresh for 'freckles'"
+# Upgrades uv.lock within the constraints in pyproject.toml, runs the test suite and
+# type checker against the fresh resolution, and opens (or updates) a PR with the new
+# lockfile if everything passes. This is what keeps the committed lockfile from going
+# stale, and it isolates "a new dependency release broke us" failures in one scheduled
+# job instead of surfacing them on unrelated pushes.
+on:
+  schedule:
+    # every Monday, 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  refresh-lockfile:
+    name: upgrade uv.lock and test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: install Python
+        run: uv python install 3.14
+      - name: upgrade lockfile
+        run: uv lock --upgrade --python 3.14
+      - name: install the project
+        run: uv sync --dev --python 3.14
+      - name: test with pytest
+        run: uv run pytest tests
+      - name: run type-checker
+        run: uv run pyrefly check
+      - name: open PR with the refreshed lockfile
+        # A no-op when `uv lock --upgrade` changed nothing. Pushes made with
+        # GITHUB_TOKEN do not trigger other workflows, so regular CI will not run
+        # on this PR -- the checks above stand in for it, and the full matrix runs
+        # on the push once the PR is merged.
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: uv.lock
+          branch: build/dependency-refresh
+          commit-message: "build(deps): refresh uv.lock"
+          title: "build(deps): refresh uv.lock"
+          body: |
+            Weekly `uv lock --upgrade`.
+
+            The test suite and type checker already ran against this resolution in
+            the `dependency refresh` workflow run that opened this PR.

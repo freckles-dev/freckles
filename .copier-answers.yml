@@ -1,0 +1,13 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 0.3.1
+_src_path: https://github.com/frkl-dev/python-project-template
+anaconda_user: freckles
+email: markus@frkl.dev
+full_name: Markus Binsteiner
+github_user: freckles-dev
+project_licenses:
+- AGPL-3.0-only
+project_name: freckles
+project_short_description: Turns minimal declarative configuration into running infrastructure
+    and IT state through a DAG of content-addressed operations.
+python_min_version: '3.12'
