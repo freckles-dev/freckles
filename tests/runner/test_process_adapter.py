@@ -52,7 +52,8 @@ def test_environment_is_scrubbed(ctx, make_plugin, monkeypatch):
     # into the child after the scrub — outside the runner's control.
     assert "SECRET_CANARY" not in child_env
     assert {"PATH", "HOME", "TMPDIR", "LANG"} <= set(child_env)
-    assert child_env["HOME"].endswith("/home")
+    # Native separator: the workspace HOME is a real local path, not identity.
+    assert child_env["HOME"].endswith(("/home", "\\home"))
 
 
 def test_workspace_is_isolated_and_cwd(ctx, make_plugin):
