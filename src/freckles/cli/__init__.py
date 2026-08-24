@@ -150,6 +150,55 @@ def resolve() -> None:
     click.echo(f"resolution {resolution_cid}")
 
 
+@main.command()
+@click.argument("node")
+def show(node: str) -> None:
+    """Human view of one node's outcome: claim, annotations, provenance (R7)."""
+    from freckles.store import get_doc, provenance_for
+
+    config_dir = Path.cwd()
+    ctx, _ = _context(config_dir, _data_dir())
+    claim_cid = ctx.store.get_ref(f"cfg/{config_dir.name}/nodes/{node}")
+    if claim_cid is None:
+        click.echo(f"error: no claim for node {node!r} — not healed yet?", err=True)
+        raise SystemExit(1)
+
+    claim = get_doc(ctx.store, claim_cid)
+    click.echo(f"{node}   {claim.get('kind', '?')}   {claim_cid}")
+    click.echo("claim")
+    for key, value in claim.items():
+        if key != "schema":
+            click.echo(f"  {key}: {value}")
+    if annotations := ctx.annotations.get(claim_cid):
+        click.echo("annotations (this machine)")
+        for key, value in annotations.items():
+            click.echo(f"  {key}: {value}")
+    if provenance := provenance_for(ctx.store, claim_cid):
+        click.echo(f"provenance    derivation {provenance['derivation']}")
+
+
+@main.group()
+def store() -> None:
+    """Raw store access — the machine-facing half of inspection (R7)."""
+
+
+@store.command("cat")
+@click.argument("cid")
+def store_cat(cid: str) -> None:
+    """Print any store document as raw DAG-JSON."""
+    from freckles.documents import Cid, to_wire
+    from freckles.store import get_doc
+
+    ctx, _ = _context(Path.cwd(), _data_dir())
+    try:
+        parsed = Cid.parse(cid)
+        document = get_doc(ctx.store, parsed)
+    except Exception as error:
+        click.echo(f"error: cannot read {cid}: {error}", err=True)
+        raise SystemExit(1) from error
+    click.echo(to_wire(document))
+
+
 @main.command(hidden=True)
 def selftest() -> None:
     """CI-only: prove the frozen artifact carries its organs (grows per milestone)."""

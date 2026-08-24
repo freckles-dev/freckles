@@ -27,7 +27,16 @@ from freckles.documents import Cid, cid_for_blob, decode, encode
 from freckles.store.base import StoreBackend
 from freckles.store.sqlite import SqliteStore
 
-__all__ = ["SqliteStore", "StoreBackend", "put_blob", "put_doc", "get_doc"]
+__all__ = [
+    "SqliteStore",
+    "StoreBackend",
+    "get_doc",
+    "provenance_for",
+    "put_blob",
+    "put_doc",
+]
+
+_DAG_CBOR = 0x71
 
 
 def put_doc(backend: StoreBackend, document: dict) -> Cid:
@@ -40,6 +49,22 @@ def put_doc(backend: StoreBackend, document: dict) -> Cid:
 def get_doc(backend: StoreBackend, cid: Cid) -> dict:
     """Fetch and decode a store document."""
     return decode(backend.get(cid))
+
+
+def provenance_for(backend: StoreBackend, claim: Cid) -> dict | None:
+    """The provenance document naming this claim as its outcome, if stored.
+
+    A linear scan over document CIDs — provenance is a separate
+    content-addressed record with no reverse index by design (ADR: the audit
+    chain never enters the claim's address), and inspection is rare.
+    """
+    for cid in backend.cids():
+        if cid.codec != _DAG_CBOR:
+            continue  # raw blobs are not documents
+        document = get_doc(backend, cid)
+        if document.get("outcome") == claim and "derivation" in document:
+            return document
+    return None
 
 
 def put_blob(backend: StoreBackend, data: bytes) -> Cid:
