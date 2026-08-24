@@ -21,3 +21,32 @@
 
 Nothing outside this module touches DAG-CBOR, CIDs, or libipld.
 """
+
+from freckles.documents.cid import Cid, cid_for_blob, cid_for_document
+from freckles.documents.codec import decode, encode, from_wire, to_wire
+from freckles.documents.model import (
+    SCHEMA,
+    Derivation,
+    Outcome,
+    Provenance,
+    Resolution,
+    ResolvedNode,
+    tree_doc,
+)
+
+__all__ = [
+    "SCHEMA",
+    "Cid",
+    "Derivation",
+    "Outcome",
+    "Provenance",
+    "ResolvedNode",
+    "Resolution",
+    "cid_for_blob",
+    "cid_for_document",
+    "decode",
+    "encode",
+    "from_wire",
+    "to_wire",
+    "tree_doc",
+]

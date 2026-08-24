@@ -1,0 +1,158 @@
+# run.py
+#
+# Copyright (c) 2026 Markus Binsteiner
+# All rights reserved.
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# This program is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
+# General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+"""One node run, end to end: request document in, outcome document out.
+
+Two adapters behind one document seam (the layout doc): in-process for
+built-ins (trusted core), process for plugins — spawned, DAG-JSON on stdio,
+scrubbed environment. `command`'s wrapped invocation is a real subprocess
+with the same enforcement either way.
+"""
+
+from __future__ import annotations
+
+import os
+import subprocess
+from pathlib import Path
+from typing import Any
+
+from freckles.documents import SCHEMA, Cid, Outcome, ResolvedNode, from_wire, to_wire
+from freckles.runner.context import RunContext
+from freckles.runner.workspace import (
+    BASELINE_PATH,
+    materialize_workspace,
+    scrubbed_env,
+)
+from freckles.store import get_doc
+
+
+class RunError(Exception):
+    """A run failed: non-zero exit, malformed output, or a broken contract."""
+
+    def __init__(self, message: str, detail: str = "") -> None:
+        super().__init__(message)
+        self.detail = detail
+
+
+def build_request(
+    name: str,
+    node: ResolvedNode,
+    inputs: dict[str, dict[str, Any]],
+    workspace_dir: str,
+    path: list[str],
+    prior: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """The wire request document (wire.cddl).
+
+    The purity split is enforced here: pure runs see claims only — no
+    annotations, no prior.
+    """
+    request_inputs: dict[str, Any] = {}
+    for kind, entry in inputs.items():
+        request_entry = {"cid": entry["cid"], "claim": entry["claim"]}
+        if node.effect == "effectful" and entry.get("annotations"):
+            request_entry["annotations"] = entry["annotations"]
+        request_inputs[kind] = request_entry
+
+    request: dict[str, Any] = {
+        "schema": SCHEMA,
+        "node": {"name": name, "config": node.config},
+        "inputs": request_inputs,
+        "workspace": {"dir": workspace_dir, "path": path},
+    }
+    if node.effect == "effectful" and prior is not None:
+        request["prior"] = prior
+    return request
+
+
+def run_node(
+    name: str,
+    node: ResolvedNode,
+    inputs: dict[str, dict[str, Any]],
+    ctx: RunContext,
+    prior: dict[str, Any] | None = None,
+) -> Outcome:
+    """Run one resolved node through the adapter its plugin id selects."""
+    workspace = materialize_workspace(ctx.workspace_root, name, inputs, ctx.store)
+    path = list(BASELINE_PATH)
+    request = build_request(name, node, inputs, str(workspace), path, prior)
+
+    if isinstance(node.plugin, Cid):
+        outcome_doc = _process_adapter(node.plugin, request, ctx)
+    else:
+        outcome_doc = _in_process_adapter(node.plugin["builtin"], request, ctx)
+
+    if "error" in outcome_doc:
+        error = outcome_doc["error"]
+        raise RunError(error.get("message", "run failed"), error.get("detail", ""))
+
+    claim = outcome_doc.get("claim")
+    if not isinstance(claim, dict) or claim.get("kind") != node.produces:
+        raise RunError(
+            f"{name}: outcome claim kind {claim.get('kind') if isinstance(claim, dict) else None!r}"
+            f" does not match resolved produced kind {node.produces!r}"
+        )
+    return Outcome(claim=claim, annotations=outcome_doc.get("annotations", {}))
+
+
+def _in_process_adapter(
+    builtin: str, request: dict[str, Any], ctx: RunContext
+) -> dict[str, Any]:
+    """Built-ins: in-process, but behind the same request/outcome documents."""
+    from freckles.builtins import BUILTINS
+
+    implementation = BUILTINS[builtin].run
+    return implementation(request, ctx)
+
+
+def _process_adapter(
+    plugin_cid: Cid, request: dict[str, Any], ctx: RunContext
+) -> dict[str, Any]:
+    """Plugins: materialize the payload, spawn it, speak DAG-JSON on stdio."""
+    plugin_claim = get_doc(ctx.store, plugin_cid)
+    workspace = request["workspace"]["dir"]
+    entrypoint = Path(workspace) / f"plugin-{plugin_claim['name']}"
+    entrypoint.write_bytes(ctx.store.get(plugin_claim["payload"]))
+    os.chmod(entrypoint, 0o755)
+
+    env = scrubbed_env(request["workspace"]["path"], workspace=Path(workspace))
+    completed = subprocess.run(
+        [str(entrypoint)],
+        input=to_wire(request).encode(),
+        capture_output=True,
+        cwd=workspace,
+        env=env,
+    )
+    if completed.returncode != 0:
+        detail = completed.stderr.decode(errors="replace")
+        try:
+            error = from_wire(completed.stdout)["error"]
+            raise RunError(error.get("message", "plugin failed"), detail)
+        except (ValueError, KeyError, TypeError):
+            raise RunError(
+                f"plugin exited {completed.returncode} without a structured error",
+                detail,
+            ) from None
+    try:
+        outcome = from_wire(completed.stdout)
+    except ValueError as exc:
+        raise RunError("plugin wrote malformed output", str(exc)) from exc
+    if not isinstance(outcome, dict) or "claim" not in outcome:
+        raise RunError("plugin output is not an outcome document")
+    return outcome

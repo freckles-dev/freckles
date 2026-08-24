@@ -50,6 +50,7 @@ requirements:
     - click
     - dulwich
     - libipld
+    - pyyaml
     - rich
 
 tests:

@@ -22,3 +22,7 @@
 Run in-process, behind the same request/outcome document interface as spawned
 plugins.
 """
+
+from freckles.builtins.registry import BUILTINS, Builtin
+
+__all__ = ["BUILTINS", "Builtin"]

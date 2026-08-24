@@ -18,3 +18,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 """Configuration to resolution document: loading, edge inference, ambiguity errors."""
+
+from freckles.resolver.resolve import ResolutionError, resolve
+
+__all__ = ["ResolutionError", "resolve"]

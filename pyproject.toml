@@ -30,6 +30,7 @@ dependencies = [
     "click",
     "dulwich",
     "libipld",
+    "pyyaml>=6.0.3",
     "rich",
 ]
 dynamic = ["version"]

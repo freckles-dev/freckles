@@ -22,3 +22,28 @@
 Backend seam (`put/get/has/cids`, refs, gc) with sqlite and folder adapters;
 backends stay codec-ignorant.
 """
+
+from freckles.documents import Cid, cid_for_blob, decode, encode
+from freckles.store.base import StoreBackend
+from freckles.store.sqlite import SqliteStore
+
+__all__ = ["SqliteStore", "StoreBackend", "put_blob", "put_doc", "get_doc"]
+
+
+def put_doc(backend: StoreBackend, document: dict) -> Cid:
+    """Encode a store document and put it; returns its CID."""
+    data, cid = encode(document)
+    backend.put(cid, data)
+    return cid
+
+
+def get_doc(backend: StoreBackend, cid: Cid) -> dict:
+    """Fetch and decode a store document."""
+    return decode(backend.get(cid))
+
+
+def put_blob(backend: StoreBackend, data: bytes) -> Cid:
+    """Put raw bytes as a blob; returns its CID."""
+    cid = cid_for_blob(data)
+    backend.put(cid, data)
+    return cid

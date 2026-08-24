@@ -17,7 +17,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-"""Click commands — a thin verb layer over the core modules."""
+"""Click commands — a thin verb layer over the core modules.
+
+The ratified CLI surface (heal, status, show, …) lands post-skeleton per its
+prototype. What exists here now: `--version`; a hidden `selftest` (CI-only —
+the frozen-binary organ check from Packaging and distribution); and a hidden
+`dev` group (the walking skeleton's raw dev commands — deliberately not the
+surface).
+"""
+
+from pathlib import Path
 
 import click
 
@@ -28,3 +37,99 @@ from freckles._version import version
 @click.version_option(version, prog_name="freckles")
 def main() -> None:
     """Turn declarative configuration into running infrastructure."""
+
+
+@main.command(hidden=True)
+def selftest() -> None:
+    """CI-only: prove the frozen artifact carries its organs (grows per milestone)."""
+    import sqlite3
+
+    from freckles.documents import cid_for_blob, decode, encode
+
+    connection = sqlite3.connect(":memory:")
+    connection.execute("CREATE TABLE t (x BLOB)")
+
+    document = {"schema": 1, "kind": "selftest", "content": cid_for_blob(b"organ")}
+    data, cid = encode(document)
+    assert decode(data) == document, "codec round-trip failed"
+    assert str(cid).startswith("bafyrei"), "CID form wrong"
+
+    click.echo("selftest ok: sqlite3, libipld codec, CIDv1")
+
+
+@main.group(hidden=True)
+def dev() -> None:
+    """Raw development commands for the walking skeleton."""
+
+
+def _context(config_dir: Path, data_dir: Path):
+    from freckles.runner import RunContext
+    from freckles.state import AnnotationsIndex, DerivationIndex, StateDb
+    from freckles.store import SqliteStore
+
+    data_dir.mkdir(parents=True, exist_ok=True)
+    (data_dir / "run").mkdir(exist_ok=True)
+    store = SqliteStore(data_dir / "store.sqlite")
+    db = StateDb(data_dir / "state.sqlite")
+    ctx = RunContext(
+        store=store,
+        annotations=AnnotationsIndex(db),
+        config_dir=config_dir,
+        freckles_version=version,
+        workspace_root=data_dir / "run",
+    )
+    return ctx, DerivationIndex(db)
+
+
+@dev.command("resolve")
+@click.argument("config_dir", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--data-dir", type=click.Path(path_type=Path), default=Path(".freckles-dev")
+)
+def dev_resolve(config_dir: Path, data_dir: Path) -> None:
+    """Resolve CONFIG_DIR and print the resolution document CID."""
+    from freckles.resolver import resolve
+
+    ctx, _ = _context(config_dir, data_dir)
+    resolution, cid = resolve(config_dir, ctx.store, version, config_dir.name)
+    click.echo(f"resolution {cid}")
+    for name, node in resolution.nodes.items():
+        edges = ", ".join(f"{k}<-{v}" for k, v in node.consumes.items()) or "-"
+        click.echo(f"  {name}  [{node.effect}] produces {node.produces}  {edges}")
+
+
+@dev.command("heal")
+@click.argument("config_dir", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--data-dir", type=click.Path(path_type=Path), default=Path(".freckles-dev")
+)
+@click.option("--yes", is_flag=True, help="Auto-confirm every checkpoint.")
+def dev_heal(config_dir: Path, data_dir: Path, yes: bool) -> None:
+    """Resolve CONFIG_DIR, then heal: day-1 = day-2 from zero."""
+    from freckles.heal import heal
+    from freckles.resolver import resolve
+
+    ctx, index = _context(config_dir, data_dir)
+    resolution, _ = resolve(config_dir, ctx.store, version, config_dir.name)
+
+    def confirm(name: str) -> bool:
+        if yes:
+            click.echo(f"checkpoint {name}: auto-confirmed")
+            return True
+        return click.confirm(f"checkpoint {name}: run it?")
+
+    report = heal(resolution, config_dir.name, ctx, index, confirm)
+    for label, nodes in (
+        ("current", report.current),
+        ("healed", report.healed),
+        ("confirmed", report.confirmed),
+        ("hidden", report.hidden),
+    ):
+        if nodes:
+            click.echo(f"{label}: {', '.join(nodes)}")
+    outstanding = [n for n in report.checkpoint_set if n not in report.confirmed]
+    if outstanding:
+        click.echo(f"checkpoint set: {', '.join(outstanding)}")
+    click.echo(
+        "deployment current" if report.deployment_current else "deployment NOT current"
+    )

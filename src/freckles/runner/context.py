@@ -1,4 +1,4 @@
-# __init__.py
+# context.py
 #
 # Copyright (c) 2026 Markus Binsteiner
 # All rights reserved.
@@ -17,12 +17,26 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-"""The topological walk: derivation computation, pure auto-heal, the checkpoint set.
+"""The trusted-core context a run executes against."""
 
-`confirm` is an injected callback: the CLI passes the interactive prompt, `--yes`
-passes const-true, tests pass scripted answers.
-"""
+from __future__ import annotations
 
-from freckles.heal.walk import HealReport, heal
+from dataclasses import dataclass
+from pathlib import Path
 
-__all__ = ["HealReport", "heal"]
+from freckles.state import AnnotationsIndex
+from freckles.store.base import StoreBackend
+
+
+@dataclass(slots=True)
+class RunContext:
+    """What the runner (and in-process built-ins, as trusted core) may touch.
+
+    Spawned plugins never see any of this — they get only the request document.
+    """
+
+    store: StoreBackend
+    annotations: AnnotationsIndex
+    config_dir: Path
+    freckles_version: str
+    workspace_root: Path

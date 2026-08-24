@@ -333,6 +333,7 @@ dependencies = [
     { name = "click" },
     { name = "dulwich" },
     { name = "libipld" },
+    { name = "pyyaml" },
     { name = "rich" },
 ]
 
@@ -362,6 +363,7 @@ requires-dist = [
     { name = "click" },
     { name = "dulwich" },
     { name = "libipld" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "rich" },
 ]
 

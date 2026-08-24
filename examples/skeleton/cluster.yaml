@@ -1,0 +1,5 @@
+apps:
+  karakeep:
+    enabled: false
+cluster:
+  name: staging

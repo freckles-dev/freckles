@@ -50,3 +50,5 @@ jobs:
           out=$(./build/nuitka/nuitka_entry.bin --version)
           echo "$out"
           echo "$out" | grep -q freckles
+      - name: selftest the frozen organs
+        run: ./build/nuitka/nuitka_entry.bin selftest

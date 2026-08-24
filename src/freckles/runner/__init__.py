@@ -23,3 +23,8 @@ Workspace materialization, env scrub, PATH construction, the wire protocol, the
 plaintext boundary (ADR 0005). Execution seam with two adapters: in-process
 (built-ins) and process (spawned plugins speaking DAG-JSON on stdio).
 """
+
+from freckles.runner.context import RunContext
+from freckles.runner.run import RunError, build_request, run_node
+
+__all__ = ["RunContext", "RunError", "build_request", "run_node"]

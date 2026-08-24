@@ -1,0 +1,29 @@
+# The walking-skeleton chain (wayfinder ticket 12): a source import, a pure
+# render, an effectful deploy. Run it by hand:
+#
+#   freckles dev heal examples/skeleton          # prompts at the checkpoint
+#   freckles dev heal examples/skeleton --yes    # auto-confirms
+#
+# Day-2: flip `enabled` in cluster.yaml, heal again — the pures re-derive
+# automatically and the checkpoint set is exactly {deploy/site}.
+nodes:
+  values/apps:
+    op: import-values
+    config: {file: cluster.yaml, key: apps}
+
+  render/site:
+    op: command
+    consumes: [values]
+    config:
+      kind: file-tree
+      effect: pure
+      cmd: [sh, -c, "mkdir -p out && cp inputs/values out/site.yaml"]
+
+  deploy/site:
+    op: command
+    consumes: [file-tree]
+    config:
+      kind: deployed-site
+      effect: effectful
+      cmd: [sh, -c, "echo deploying:; cat inputs/file-tree/site.yaml"]
+      claim: {site: demo}
