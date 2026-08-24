@@ -141,6 +141,15 @@ def status(frozen: bool, check: bool) -> None:
         raise SystemExit(2)
 
 
+@main.command()
+def resolve() -> None:
+    """Plumbing: re-resolve the configuration and print the document's CID."""
+    config_dir = Path.cwd()
+    ctx, _ = _context(config_dir, _data_dir())
+    _, resolution_cid = _resolve_or_die(config_dir, ctx.store)
+    click.echo(f"resolution {resolution_cid}")
+
+
 @main.command(hidden=True)
 def selftest() -> None:
     """CI-only: prove the frozen artifact carries its organs (grows per milestone)."""
