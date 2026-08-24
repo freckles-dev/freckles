@@ -94,6 +94,15 @@ as the ceiling.
   interface (two runner adapters); standard plugins in-repo under
   `plugins/`; public surface = CLI + sdk only; names are glossary
   terms. Layout doc in assets.
+- [Testing strategy](issues/10-testing-strategy.md) — /tdd post-
+  skeleton, test-along skeleton; seam-first tests with real
+  collaborators and no internal mocks; top-level `conformance/` (CDDL +
+  goldens, data-only) with triple golden assertions; dual-encoder
+  cross-check on every test-minted document, example-based only;
+  stdlib-Python fake plugins + misbehavior battery; parametrized store
+  contract suite incl. gc; run-twice determinism helper; two-layer
+  secrets canary with vacuity guard; linux-only CI over Python 3.12→
+  latest stable; no coverage gate. Testing doc in assets.
 
 ## Not yet specified
 
@@ -102,7 +111,11 @@ as the ceiling.
   drags.
 - Plugin-author ergonomics beyond the raw process protocol (the SDK
   "sugar" ADR 0004 allows) — sharpens once Normative wire schemas and
-  Stack and libraries land.
+  Stack and libraries land. Testing strategy adds: the determinism
+  run-twice helper is a candidate for sdk export when this sharpens.
+- Plugin runtime limits (timeouts, resource caps) — the design
+  specifies no semantics; surfaced by Testing strategy's misbehavior
+  battery (hang handling deliberately excluded from the v1 suite).
 
 ## Out of scope
 
