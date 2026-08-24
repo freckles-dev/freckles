@@ -94,6 +94,28 @@ def heal(yes: bool) -> None:
         raise SystemExit(2)
 
 
+@main.command()
+def status() -> None:
+    """Report currency: heal stale pures, name the exact checkpoint set (R2)."""
+    from freckles.heal import heal as heal_walk
+    from freckles.resolver import resolve
+
+    config_dir = Path.cwd()
+    ctx, index = _context(config_dir, _data_dir())
+    resolution, _ = resolve(config_dir, ctx.store, version, config_dir.name)
+
+    report = heal_walk(resolution, config_dir.name, ctx, index, lambda _: False)
+    if report.healed:
+        click.echo(f"pure heal: {', '.join(report.healed)}")
+    if report.deployment_current:
+        click.echo(
+            f"{len(resolution.nodes)} nodes, all current — checkpoint set empty."
+        )
+    else:
+        click.echo(f"checkpoint set: {', '.join(report.checkpoint_set)}")
+        raise SystemExit(2)
+
+
 @main.command(hidden=True)
 def selftest() -> None:
     """CI-only: prove the frozen artifact carries its organs (grows per milestone)."""
