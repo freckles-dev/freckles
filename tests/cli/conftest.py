@@ -48,6 +48,10 @@ class CliWorld:
     data_dir: Path
     runner: CliRunner
 
+    def edit_values(self) -> None:
+        """The day-2 config edit: enable the app, rippling values -> render -> deploy."""
+        (self.config_dir / "cluster.yaml").write_text(VALUES_DAY2)
+
     def invoke(self, *args: str, input: str | None = None) -> Result:
         return self.runner.invoke(
             main,

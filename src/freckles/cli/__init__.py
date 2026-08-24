@@ -34,6 +34,12 @@ import click
 from freckles._version import version
 
 
+def _abbrev(cid: object) -> str:
+    """Name-first output (R4): CIDs shrink to `bafyre…xxx` wherever a name leads."""
+    text = str(cid)
+    return f"{text[:6]}…{text[-3:]}" if len(text) > 12 else text
+
+
 def _data_dir() -> Path:
     env = os.environ.get("FRECKLES_DATA_DIR")
     if env:
@@ -53,6 +59,7 @@ def main() -> None:
 @click.option("--yes", is_flag=True, help="Auto-confirm every checkpoint.")
 def heal(yes: bool) -> None:
     """Resolve the configuration in the current directory and heal it."""
+    from freckles.heal import Checkpoint
     from freckles.heal import heal as heal_walk
     from freckles.resolver import resolve
 
@@ -60,11 +67,21 @@ def heal(yes: bool) -> None:
     ctx, index = _context(config_dir, _data_dir())
     resolution, _ = resolve(config_dir, ctx.store, version, config_dir.name)
 
-    def confirm(name: str) -> bool:
+    def confirm(checkpoint: Checkpoint) -> bool:
+        click.echo(f"  ▶ {checkpoint.name}  ({checkpoint.op} · {checkpoint.effect})")
+        if checkpoint.supersedes is None:
+            click.echo(
+                f"      creates      {checkpoint.produces}"
+                "  (first claim — nothing superseded)"
+            )
+        else:
+            click.echo(f"      supersedes   {_abbrev(checkpoint.supersedes)}")
+        if checkpoint.prior_available:
+            click.echo("      prior        available (claim + annotations)")
         if yes:
-            click.echo(f"  {name}  auto-confirmed")
+            click.echo("      auto-confirmed")
             return True
-        return click.confirm(f"  {name}  proceed?", default=False)
+        return click.confirm("      proceed?", default=False)
 
     report = heal_walk(resolution, config_dir.name, ctx, index, confirm)
     for name in report.healed:
@@ -72,6 +89,8 @@ def heal(yes: bool) -> None:
     if report.deployment_current:
         click.echo("deployment current — checkpoint set empty.")
     else:
+        outstanding = [n for n in report.checkpoint_set if n not in report.confirmed]
+        click.echo(f"checkpoint set: {', '.join(outstanding)}")
         raise SystemExit(2)
 
 
@@ -148,11 +167,11 @@ def dev_heal(config_dir: Path, data_dir: Path, yes: bool) -> None:
     ctx, index = _context(config_dir, data_dir)
     resolution, _ = resolve(config_dir, ctx.store, version, config_dir.name)
 
-    def confirm(name: str) -> bool:
+    def confirm(checkpoint) -> bool:
         if yes:
-            click.echo(f"checkpoint {name}: auto-confirmed")
+            click.echo(f"checkpoint {checkpoint.name}: auto-confirmed")
             return True
-        return click.confirm(f"checkpoint {name}: run it?")
+        return click.confirm(f"checkpoint {checkpoint.name}: run it?")
 
     report = heal(resolution, config_dir.name, ctx, index, confirm)
     for label, nodes in (

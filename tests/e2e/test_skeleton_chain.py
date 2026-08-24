@@ -120,7 +120,9 @@ def test_the_skeleton_loop(world):
     assert not report.deployment_current
 
     # --- confirm the checkpoint: deploy re-runs and receives prior:
-    report = heal_current(ctx, index, confirm=lambda name: name == "deploy/site")
+    report = heal_current(
+        ctx, index, confirm=lambda checkpoint: checkpoint.name == "deploy/site"
+    )
     assert report.confirmed == ["deploy/site"]
     assert report.deployment_current
     new_deploy_ref = ctx.store.get_ref("cfg/demo/nodes/deploy/site")

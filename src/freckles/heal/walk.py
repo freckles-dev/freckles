@@ -50,6 +50,24 @@ def _is_source(node: ResolvedNode) -> bool:
     return False
 
 
+def _op_label(node: ResolvedNode) -> str:
+    if isinstance(node.plugin, dict) and "builtin" in node.plugin:
+        return node.plugin["builtin"]
+    return str(node.plugin)
+
+
+@dataclass(slots=True)
+class Checkpoint:
+    """The facts a human needs to confirm one effectful run (prompt R3)."""
+
+    name: str
+    op: str
+    effect: str
+    produces: str
+    supersedes: Cid | None  # the claim this run would replace, if any
+    prior_available: bool  # a prior claim (+ its annotations) can be passed
+
+
 @dataclass(slots=True)
 class HealReport:
     current: list[str] = field(default_factory=list)  # derivation hit, untouched
@@ -71,7 +89,7 @@ def heal(
     config_name: str,
     ctx: RunContext,
     index: DerivationIndex,
-    confirm: Callable[[str], bool],
+    confirm: Callable[[Checkpoint], bool],
 ) -> HealReport:
     report = HealReport()
     claims: dict[str, Cid] = {}  # node -> current claim CID, advancing as we walk
@@ -115,7 +133,16 @@ def heal(
 
         if node.effect == "effectful":
             report.checkpoint_set.append(name)
-            if not confirm(name):
+            previous = ctx.store.get_ref(f"cfg/{config_name}/nodes/{name}")
+            checkpoint = Checkpoint(
+                name=name,
+                op=_op_label(node),
+                effect=node.effect,
+                produces=node.produces,
+                supersedes=previous,
+                prior_available=previous is not None,
+            )
+            if not confirm(checkpoint):
                 hidden.add(name)
                 continue
             claims[name] = _run(
