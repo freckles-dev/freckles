@@ -41,7 +41,9 @@ as the ceiling.
   and its tooling (uv; hatch build/publish with git-tag versioning; CI
   for tests/lint/typecheck; wheel/sdist + conda; justfile).
 - Commit rhythm: per-claim and per-resolve commits, as in the design
-  effort.
+  effort. Since Repo scaffolding (2026-08-24): work lands on `develop`
+  (the template's release flow; tags merge to `main`), repo
+  `freckles-dev/freckles`, license AGPL-3.0-only.
 - Research findings live on `research/*` branches
   (`research/bootstrap-tools` and `research/cas-survey` exist;
   `research/language-ecosystems` is added by this map).
@@ -103,6 +105,13 @@ as the ceiling.
   contract suite incl. gc; run-twice determinism helper; two-layer
   secrets canary with vacuity guard; linux-only CI over Python 3.12→
   latest stable; no coverage gate. Testing doc in assets.
+- [Repo scaffolding](issues/11-repo-scaffolding.md) — template applied
+  (uv, hatch git-tag versioning, justfile, pre-commit, CI): nine module
+  packages + plugins/ + mirrored tests/, pinned stack wired, `uv.lock`
+  committed, conformance/ relocated to top level, guardrails workflow
+  (golden regen-diff + Nuitka standalone) — all checks green locally;
+  first Nuitka data point 41 s / 42 MB. CI pending the HITL push to
+  the new `freckles-dev/freckles` repo.
 
 ## Not yet specified
 
