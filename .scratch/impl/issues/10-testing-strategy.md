@@ -1,7 +1,7 @@
 # Testing strategy
 
 Type: grilling
-Status: open
+Status: claimed (markus, 2026-08-24)
 Blocked by: 07
 
 ## Question
