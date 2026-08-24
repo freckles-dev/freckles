@@ -1,7 +1,7 @@
 # Packaging and distribution
 
 Type: grilling
-Status: open
+Status: claimed (markus, 2026-08-24)
 Blocked by: 02
 
 ## Question
