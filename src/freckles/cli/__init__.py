@@ -95,6 +95,10 @@ def heal(yes: bool) -> None:
             )
         else:
             click.echo(f"      supersedes   {_abbrev(checkpoint.supersedes)}")
+        if checkpoint.secrets:
+            click.echo(
+                f"      receives plaintext secrets: {', '.join(checkpoint.secrets)}"
+            )
         if checkpoint.prior_available:
             click.echo("      prior        available (claim + annotations)")
         if yes:

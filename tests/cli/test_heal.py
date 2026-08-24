@@ -35,6 +35,15 @@ def test_declined_checkpoint_leaves_deployment_stale_exit_2(world):
     assert "deployment current" not in result.output
 
 
+def test_checkpoint_prompt_names_plaintext_secrets(secret_world):
+    """R3 completed by M2: the prompt says which plaintext the node receives."""
+    result = secret_world.invoke("heal", input="y\n")
+
+    assert result.exit_code == 0
+    assert "receives plaintext secrets: deploy-token" in result.output
+    assert "tok-3nt4ngl3d" not in result.output  # names, never values
+
+
 def test_day2_checkpoint_prompt_shows_supersedes_and_prior(world):
     """R3: a re-run names the claim it supersedes and offers prior:."""
     world.invoke("heal", "--yes")

@@ -77,6 +77,43 @@ class CliWorld:
         )
 
 
+SECRET_CHAIN = """
+nodes:
+  values/apps:
+    op: import-values
+    config: {file: cluster.yaml, key: apps}
+  secrets/deploy-token:
+    op: import-sops
+    config: {file: secrets.sops.yaml, key: deploy_token}
+  render/site:
+    op: command
+    consumes: [values]
+    config:
+      kind: file-tree
+      effect: pure
+      cmd: [sh, -c, "mkdir -p out && cp inputs/values out/site.yaml"]
+  deploy/site:
+    op: command
+    consumes: [file-tree, secret]
+    config:
+      kind: deployed-site
+      effect: effectful
+      cmd: [sh, -c, 'test -n "$DEPLOY_TOKEN"']
+      secret-env: {DEPLOY_TOKEN: secret}
+      claim: {site: demo}
+"""
+
+
+@pytest.fixture
+def secret_world(world, sops_lab) -> CliWorld:
+    """The walking-skeleton chain plus one sops secret feeding the deploy."""
+    (world.config_dir / "freckles.yaml").write_text(SECRET_CHAIN)
+    sops_lab.encrypt(
+        world.config_dir / "secrets.sops.yaml", {"deploy_token": "tok-3nt4ngl3d"}
+    )
+    return world
+
+
 @pytest.fixture
 def world(tmp_path, monkeypatch) -> CliWorld:
     config_dir = tmp_path / "demo"

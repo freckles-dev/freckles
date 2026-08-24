@@ -73,6 +73,7 @@ class Checkpoint:
     produces: str
     supersedes: Cid | None  # the claim this run would replace, if any
     prior_available: bool  # a prior claim (+ its annotations) can be passed
+    secrets: list[str] = field(default_factory=list)  # plaintext names (R3/M2)
 
 
 @dataclass(slots=True)
@@ -148,6 +149,11 @@ def heal(
                 produces=node.produces,
                 supersedes=previous,
                 prior_available=previous is not None,
+                secrets=[
+                    claim["name"]
+                    for cid in inputs.values()
+                    if (claim := get_doc(ctx.store, cid)).get("kind") == "secret"
+                ],
             )
             if not confirm(checkpoint):
                 hidden.add(name)
