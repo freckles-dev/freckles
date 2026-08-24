@@ -174,7 +174,8 @@ def _snapshot(config_dir: Path, store: StoreBackend) -> Cid:
     """The configuration working copy as a tree document (content, never git state)."""
     entries: dict[str, Any] = {}
     for file in sorted(p for p in config_dir.rglob("*") if p.is_file()):
-        relative = str(file.relative_to(config_dir))
+        # Tree keys are identity: always /-separated, on every platform.
+        relative = file.relative_to(config_dir).as_posix()
         if relative.startswith(".git/"):
             continue
         entries[relative] = {"content": put_blob(store, file.read_bytes())}

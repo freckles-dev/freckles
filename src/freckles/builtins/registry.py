@@ -122,7 +122,9 @@ def _command(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
         out_dir = workspace / "out"
         entries: dict[str, Any] = {}
         for file in sorted(p for p in out_dir.rglob("*") if p.is_file()):
-            entries[str(file.relative_to(out_dir))] = {
+            # Tree keys are identity: always /-separated, or the same tree
+            # would hash to different CIDs per platform.
+            entries[file.relative_to(out_dir).as_posix()] = {
                 "content": put_blob(ctx.store, file.read_bytes())
             }
         tree_cid = put_doc(ctx.store, tree_doc(entries))

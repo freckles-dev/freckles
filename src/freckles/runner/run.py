@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -128,17 +129,33 @@ def _process_adapter(
     plugin_claim = get_doc(ctx.store, plugin_cid)
     workspace = request["workspace"]["dir"]
     entrypoint = Path(workspace) / f"plugin-{plugin_claim['name']}"
-    entrypoint.write_bytes(ctx.store.get(plugin_claim["payload"]))
+    payload = ctx.store.get(plugin_claim["payload"])
+    entrypoint.write_bytes(payload)
     os.chmod(entrypoint, 0o755)
 
+    argv = [str(entrypoint)]
+    if os.name == "nt":
+        # Windows cannot exec shebang scripts. Until the manifest's
+        # `platforms` field gates acquisition (post-skeleton), run
+        # python-shebang payloads through the current interpreter.
+        first_line = payload.split(b"\n", 1)[0]
+        if first_line.startswith(b"#!") and b"python" in first_line:
+            argv = [sys.executable, str(entrypoint)]
+
     env = scrubbed_env(request["workspace"]["path"], workspace=Path(workspace))
-    completed = subprocess.run(
-        [str(entrypoint)],
-        input=to_wire(request).encode(),
-        capture_output=True,
-        cwd=workspace,
-        env=env,
-    )
+    try:
+        completed = subprocess.run(
+            argv,
+            input=to_wire(request).encode(),
+            capture_output=True,
+            cwd=workspace,
+            env=env,
+        )
+    except OSError as exc:
+        raise RunError(
+            f"plugin {plugin_claim['name']!r} is not executable on this platform",
+            str(exc),
+        ) from exc
     if completed.returncode != 0:
         detail = completed.stderr.decode(errors="replace")
         try:
