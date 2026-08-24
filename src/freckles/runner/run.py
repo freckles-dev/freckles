@@ -62,13 +62,19 @@ def build_request(
     """The wire request document (wire.cddl).
 
     The purity split is enforced here: pure runs see claims only — no
-    annotations, no prior.
+    annotations, no prior, and never plaintext (ADR 0005). Secret claims
+    consumed by an effectful node arrive with `resolved:` injected — the
+    plaintext exists only in this in-memory document.
     """
     request_inputs: dict[str, Any] = {}
     for kind, entry in inputs.items():
         request_entry = {"cid": entry["cid"], "claim": entry["claim"]}
         if node.effect == "effectful" and entry.get("annotations"):
             request_entry["annotations"] = entry["annotations"]
+        if node.effect == "effectful" and entry["claim"].get("kind") == "secret":
+            request_entry["resolved"] = {
+                "value": _resolve_secret(entry["claim"], entry.get("annotations"))
+            }
         request_inputs[kind] = request_entry
 
     request: dict[str, Any] = {
@@ -80,6 +86,28 @@ def build_request(
     if node.effect == "effectful" and prior is not None:
         request["prior"] = prior
     return request
+
+
+def _resolve_secret(claim: dict[str, Any], annotations: dict[str, Any] | None) -> str:
+    """In-memory plaintext for one consumed secret claim (design.md §9)."""
+    from freckles.runner import sops
+
+    name = claim.get("name", "?")
+    if claim.get("shape") != "value":
+        raise RunError(
+            f"no resolver for {claim.get('shape')!r}-bearing secrets (v1 resolves "
+            f"shape 'value' only) — secret {name!r}"
+        )
+    imported_from = (annotations or {}).get("imported_from")
+    if not imported_from:
+        raise RunError(
+            f"secret {name!r} has no local materialization "
+            "(no imported_from annotation on this machine)"
+        )
+    try:
+        return sops.resolve_value(imported_from)
+    except sops.SopsError as error:
+        raise RunError(f"cannot resolve secret {name!r}: {error}") from error
 
 
 def run_node(

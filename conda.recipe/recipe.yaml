@@ -48,8 +48,10 @@ requirements:
     # KEEP IN SYNC with `[project].dependencies` in pyproject.toml. conda cannot read
     # those, so every runtime dependency has to be mirrored here by hand.
     - click
+    - cryptography
     - dulwich
     - libipld
+    - pyrage
     - pyyaml
     - rich
 

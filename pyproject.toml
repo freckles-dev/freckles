@@ -28,8 +28,10 @@ classifiers = [
 # embedded git fetch for import-git. Exact version pins stay loose until first code.
 dependencies = [
     "click",
+    "cryptography>=50.0.0",
     "dulwich",
     "libipld",
+    "pyrage>=1.4.0",
     "pyyaml>=6.0.3",
     "rich",
 ]
@@ -48,6 +50,7 @@ dev = [
     "icecream",
     "multiformats[full]",
     "pre-commit",
+    "pyrage-stubs>=1.4.0",
     "pyrefly",
     "pytest",
     "pytest-cov",
@@ -55,7 +58,7 @@ dev = [
     "ruff",
     "snoop",
     "ty",
-    "wat"
+    "wat",
 ]
 # Kept out of the default dev sync: nuitka is only needed by the standalone-compile
 # guardrail (ADR 0006 rider) — `uv sync --group compile`.
