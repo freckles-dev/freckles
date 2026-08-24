@@ -46,8 +46,12 @@ def test_environment_is_scrubbed(ctx, make_plugin, monkeypatch):
     plugin = make_plugin("echo", ECHO_PLUGIN, produces="echo")
     outcome = run_node("demo/echo", resolved(plugin), {}, ctx)
     child_env = outcome.claim["env"]
+    # The runner constructs exactly these four; nothing from the calling
+    # environment may leak. No exact-set assertion on purpose: on darwin the
+    # /usr/bin/env python3 shim injects toolchain vars (CPATH, SDKROOT, …)
+    # into the child after the scrub — outside the runner's control.
     assert "SECRET_CANARY" not in child_env
-    assert set(child_env) == {"PATH", "HOME", "TMPDIR", "LANG"}
+    assert {"PATH", "HOME", "TMPDIR", "LANG"} <= set(child_env)
     assert child_env["HOME"].endswith("/home")
 
 
