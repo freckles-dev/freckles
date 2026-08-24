@@ -1,7 +1,7 @@
 # Milestones to v1
 
 Type: grilling
-Status: open
+Status: claimed (markus, 2026-08-24)
 Blocked by: 04, 06, 09, 10, 12
 
 ## Question
