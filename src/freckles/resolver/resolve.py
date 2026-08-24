@@ -144,10 +144,12 @@ def _wire_edge(
     if not candidates:
         raise ResolutionError(f"{node_name}: no provider for consumed kind {kind!r}")
     if len(candidates) > 1:
+        providers = sorted(candidates)
         raise ResolutionError(
-            f"{node_name}: consumed kind {kind!r} is ambiguous "
-            f"({', '.join(sorted(candidates))}) — break the tie with "
-            f"use: {{{kind}: <node>}}"
+            f"ambiguous edge: {node_name} consumes kind {kind!r}, "
+            f"{len(providers)} providers: {', '.join(providers)}\n"
+            f"fix: select one explicitly in {node_name}:\n"
+            f"    use: {{{kind}: {providers[0]}}}"
         )
     return candidates[0]
 

@@ -40,6 +40,17 @@ def _abbrev(cid: object) -> str:
     return f"{text[:6]}…{text[-3:]}" if len(text) > 12 else text
 
 
+def _resolve_or_die(config_dir: Path, store):
+    """Resolve cwd's configuration; a resolution failure is exit 1 (R6)."""
+    from freckles.resolver import ResolutionError, resolve
+
+    try:
+        return resolve(config_dir, store, version, config_dir.name)
+    except ResolutionError as error:
+        click.echo(f"error: {error}", err=True)
+        raise SystemExit(1) from error
+
+
 def _data_dir() -> Path:
     env = os.environ.get("FRECKLES_DATA_DIR")
     if env:
@@ -61,11 +72,10 @@ def heal(yes: bool) -> None:
     """Resolve the configuration in the current directory and heal it."""
     from freckles.heal import Checkpoint
     from freckles.heal import heal as heal_walk
-    from freckles.resolver import resolve
 
     config_dir = Path.cwd()
     ctx, index = _context(config_dir, _data_dir())
-    resolution, _ = resolve(config_dir, ctx.store, version, config_dir.name)
+    resolution, _ = _resolve_or_die(config_dir, ctx.store)
 
     def confirm(checkpoint: Checkpoint) -> bool:
         click.echo(f"  ▶ {checkpoint.name}  ({checkpoint.op} · {checkpoint.effect})")
@@ -101,7 +111,6 @@ def status(frozen: bool, check: bool) -> None:
     """Report currency: heal stale pures, name the exact checkpoint set (R2)."""
     from freckles.heal import frozen as frozen_walk
     from freckles.heal import heal as heal_walk
-    from freckles.resolver import resolve
 
     def echo(message: str) -> None:
         if not check:
@@ -109,7 +118,7 @@ def status(frozen: bool, check: bool) -> None:
 
     config_dir = Path.cwd()
     ctx, index = _context(config_dir, _data_dir())
-    resolution, _ = resolve(config_dir, ctx.store, version, config_dir.name)
+    resolution, _ = _resolve_or_die(config_dir, ctx.store)
 
     if frozen:
         frozen_report = frozen_walk(resolution, config_dir.name, ctx, index)

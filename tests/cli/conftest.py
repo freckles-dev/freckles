@@ -52,6 +52,17 @@ class CliWorld:
         """The day-2 config edit: enable the app, rippling values -> render -> deploy."""
         (self.config_dir / "cluster.yaml").write_text(VALUES_DAY2)
 
+    def add_second_values_provider(self) -> None:
+        """A second `values` source — makes render/site's consumed edge ambiguous."""
+        (self.config_dir / "freckles.yaml").write_text(
+            CHAIN
+            + """
+  values/cluster:
+    op: import-values
+    config: {file: cluster.yaml, key: cluster}
+"""
+        )
+
     def invoke(self, *args: str, input: str | None = None) -> Result:
         return self.runner.invoke(
             main,
