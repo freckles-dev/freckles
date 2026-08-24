@@ -129,24 +129,21 @@ as the ceiling.
   Frictions fed back: the source-rerun rule (design.md §8 amendment
   proposed, awaiting ratification), pyyaml stack addendum, and the
   plugin-content-ingestion fog patch.
+- [Milestones to v1](issues/13-milestones-to-v1.md) — **the map's
+  terminal decision, resolved: the map is complete.** Nine milestones
+  ([docs/milestones-v1.md](../../docs/milestones-v1.md), GitHub issues
+  #1–#9): CLI → secrets → persistence → drift → plugin mechanics/SDK →
+  mise route → pixi leg → late imports → release; /tdd drives; the
+  acceptance bar is a tag-gating workflow; the source-rerun amendment
+  ratified into design.md §8; all remaining fog dispatched (ergonomics
+  and ingestion into M5, runtime limits and parallelism out of v1 with
+  the recorded contingency trigger).
 
 ## Not yet specified
 
-- Parallel/concurrent node execution — the design promises nothing;
-  sequential v1 assumed. Revisit post-skeleton if the acceptance chain
-  drags.
-- Plugin-author ergonomics beyond the raw process protocol (the SDK
-  "sugar" ADR 0004 allows) — sharpens once Normative wire schemas and
-  Stack and libraries land. Testing strategy adds: the determinism
-  run-twice helper is a candidate for sdk export when this sharpens.
-- Plugin runtime limits (timeouts, resource caps) — the design
-  specifies no semantics; surfaced by Testing strategy's misbehavior
-  battery (hang handling deliberately excluded from the v1 suite).
-- Plugin content ingestion — built-ins ingest produced files into the
-  CAS as trusted core, but the wire protocol has no channel for a
-  spawned plugin to land blobs in the store; needed the moment a
-  standard plugin produces a file-tree (copier). Surfaced by the
-  Walking skeleton.
+None — the map is complete (Milestones to v1, 2026-08-24). The last
+patches graduated into the milestone plan: plugin-author ergonomics and
+plugin content ingestion into milestone 5 (Plugin mechanics + SDK).
 
 ## Out of scope
 
@@ -157,3 +154,8 @@ as the ceiling.
   keys, provider auth) — inherited deferral.
 - Performance optimization beyond what the skeleton and acceptance chain
   need.
+- Plugin runtime limits (timeouts, resource caps) — no design semantics;
+  ruled out of v1 by Milestones to v1 (post-v1 backlog in the plan doc).
+- Parallel/concurrent node execution — sequential v1 stands; out unless
+  the plan doc's recorded contingency fires ("if the acceptance chain
+  drags").

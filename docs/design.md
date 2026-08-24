@@ -293,7 +293,13 @@ Decided in [Effects and day-2](../.scratch/design/issues/07-effects-and-day-2.md
   resolution document) → heal, walking the DAG in topological order: each
   node's new derivation is computed from its current input claims and
   looked up in the derivation index — a hit means current (unless the
-  claim is locally distrusted — see drift below); a miss on a pure node
+  claim is locally distrusted — see drift below). **Source nodes are
+  exempt from hit-means-current**: their derivations are content-free
+  (config only, zero inputs), so the world they import can change under
+  an unchanged derivation — the walk re-runs them unconditionally;
+  re-import is pure and cheap, and an unchanged import re-mints the same
+  claim, so the ripple stops immediately (amendment 2026-08-24, from the
+  walking skeleton). A miss on a pure node
   re-derives automatically on the spot, often re-minting the same claim,
   which stops the ripple; a miss on an effectful node marks it **stale**
   and puts it in the **checkpoint set** — the stale effectful nodes, the
