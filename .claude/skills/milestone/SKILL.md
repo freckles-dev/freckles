@@ -1,6 +1,6 @@
 ---
 name: milestone
-description: Drive one freckles v1 milestone (GitHub issues #1–#9) from claim to close. Use when the user says to open, continue, or resume a milestone, or asks what is next on the road to v1.
+description: "Drive one freckles v1 milestone (GitHub issues #1–#9) from claim to close. Use when the user says to open, continue, or resume a milestone, or asks what is next on the road to v1."
 ---
 
 # Driving a v1 milestone
