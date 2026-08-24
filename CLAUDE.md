@@ -30,6 +30,13 @@ This project uses `uv` for dependency management and `just` as a task runner.
 - `uv run ruff check . --fix` - Lint with auto-fix
 - `uv run ruff format .` - Format code
 
+## Commits
+
+Conventional commits, enforced by commitlint in pre-commit: header at most 100
+characters, and the subject after `type(scope):` stays lowercase (sentence-case
+is rejected). When a commit fails with "files were modified by this hook" (ruff
+rewrote something), `git add -A` and re-run the same commit.
+
 ## Dependency Management
 
 - Runtime dependencies live in `[project].dependencies`, dev tooling in the `dev` dependency
