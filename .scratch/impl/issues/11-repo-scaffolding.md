@@ -1,7 +1,7 @@
 # Repo scaffolding
 
 Type: task
-Status: open
+Status: claimed (markus, 2026-08-24)
 Blocked by: 02, 07
 
 ## Question
