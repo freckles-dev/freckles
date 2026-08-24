@@ -1,7 +1,7 @@
 # Walking skeleton
 
 Type: task
-Status: open
+Status: claimed (markus, 2026-08-24)
 Blocked by: 05, 07, 08, 11
 
 ## Question
