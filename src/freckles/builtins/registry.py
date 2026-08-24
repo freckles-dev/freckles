@@ -36,7 +36,7 @@ from typing import Any
 
 import yaml
 
-from freckles.documents import SCHEMA, to_wire, tree_doc
+from freckles.documents import SCHEMA, cid_for_blob, to_wire, tree_doc
 from freckles.runner.context import RunContext
 from freckles.runner.workspace import scrubbed_env
 from freckles.store import put_blob, put_doc
@@ -81,6 +81,48 @@ def _import_values(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
             "kind": "values",
             "key": config["key"],
             "content": cid,
+        },
+    }
+
+
+def _import_sops(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
+    """Source node: one key's sops ciphertext becomes a secret-value claim.
+
+    Identity is the ciphertext (design.md §9): the claim references exactly
+    this key's ENC bytes, so rotating a sibling key in the same file never
+    ripples here. No decryption happens at import — that is the runner
+    boundary's business (ADR 0005).
+    """
+    from datetime import UTC, datetime
+
+    config = request["node"]["config"]
+    source = ctx.config_dir / config["file"]
+    key = config["key"]
+    document = yaml.safe_load(source.read_text())
+    value = document[key]
+    ciphertext = (
+        value.encode()
+        if isinstance(value, str)
+        else yaml.safe_dump(value, sort_keys=True).encode()
+    )
+    if config.get("store", True):
+        cid = put_blob(ctx.store, ciphertext)
+    else:
+        # The detached variant: same hash, same claim, same ripple — the
+        # bytes stay in the working copy (runner materializes from there).
+        cid = cid_for_blob(ciphertext)
+    return {
+        "schema": SCHEMA,
+        "claim": {
+            "schema": SCHEMA,
+            "kind": "secret",
+            "shape": "value",
+            "name": config.get("name") or key.replace("_", "-"),
+            "ciphertext": cid,
+        },
+        "annotations": {
+            "imported_from": f"{source}#{key}",
+            "imported_at": datetime.now(UTC).isoformat(timespec="seconds"),
         },
     }
 
@@ -150,6 +192,13 @@ BUILTINS: dict[str, Builtin] = {
         effect="pure",
         source=True,
         run=_import_values,
+    ),
+    "import-sops": Builtin(
+        name="import-sops",
+        produces="secret",
+        effect="pure",
+        source=True,
+        run=_import_sops,
     ),
     "command": Builtin(
         # produces/effect/consumes all node-supplied for the adapter.
