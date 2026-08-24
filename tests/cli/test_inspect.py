@@ -40,6 +40,31 @@ def test_store_cat_prints_raw_dag_json(world):
     assert "nodes" in document
 
 
+def test_show_redacts_secret_marked_annotations(secret_world):
+    """R7: the human view shows secret names, never secret material."""
+    from freckles.state import AnnotationsIndex, StateDb
+    from freckles.store import SqliteStore
+
+    secret_world.invoke("heal", "--yes")
+    # a credential minted by the effectful run, recorded machine-locally
+    # (the state seam is public — same db the CLI reads)
+    store = SqliteStore(secret_world.data_dir / "store.sqlite")
+    claim = store.get_ref("cfg/demo/nodes/deploy/site")
+    assert claim is not None
+    index = AnnotationsIndex(StateDb(secret_world.data_dir / "state.sqlite"))
+    index.set(
+        claim,
+        index.get(claim) | {"admin_token": {"value": "cr3d-material", "secret": True}},
+    )
+
+    result = secret_world.invoke("show", "deploy/site")
+
+    assert result.exit_code == 0
+    assert "admin_token" in result.output  # the name is shown
+    assert "cr3d-material" not in result.output  # the material never is
+    assert "not shown" in result.output
+
+
 def test_store_cat_bad_cid_exits_1(world):
     world.invoke("heal", "--yes")
 

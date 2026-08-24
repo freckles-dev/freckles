@@ -182,7 +182,7 @@ def show(node: str) -> None:
     for key, value in claim.items():
         if key != "schema":
             click.echo(f"  {key}: {value}")
-    if annotations := ctx.annotations.get(claim_cid):
+    if annotations := ctx.annotations.redacted(claim_cid):
         click.echo("annotations (this machine)")
         for key, value in annotations.items():
             click.echo(f"  {key}: {value}")

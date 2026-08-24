@@ -91,6 +91,19 @@ class AnnotationsIndex:
         ).fetchone()
         return json.loads(row[0]) if row else {}
 
+    def redacted(self, claim: Cid) -> dict[str, Any]:
+        """The display view: secret-marked entries never leave as values.
+
+        Effectful runs receive the full annotations via `get`; everything
+        freckles *prints* goes through here (design.md §9).
+        """
+        return {
+            key: "<secret — not shown>"
+            if isinstance(value, dict) and value.get("secret")
+            else value
+            for key, value in self.get(claim).items()
+        }
+
     def set(self, claim: Cid, annotations: dict[str, Any]) -> None:
         with self._conn:
             self._conn.execute(
