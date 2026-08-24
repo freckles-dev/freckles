@@ -95,24 +95,40 @@ def heal(yes: bool) -> None:
 
 
 @main.command()
-def status() -> None:
+@click.option("--frozen", is_flag=True, help="Report without deriving anything.")
+@click.option("--check", is_flag=True, help="Exit code only — 0 current, 2 stale.")
+def status(frozen: bool, check: bool) -> None:
     """Report currency: heal stale pures, name the exact checkpoint set (R2)."""
+    from freckles.heal import frozen as frozen_walk
     from freckles.heal import heal as heal_walk
     from freckles.resolver import resolve
+
+    def echo(message: str) -> None:
+        if not check:
+            click.echo(message)
 
     config_dir = Path.cwd()
     ctx, index = _context(config_dir, _data_dir())
     resolution, _ = resolve(config_dir, ctx.store, version, config_dir.name)
 
+    if frozen:
+        frozen_report = frozen_walk(resolution, config_dir.name, ctx, index)
+        if frozen_report.all_current:
+            echo(f"{len(resolution.nodes)} nodes, all current — checkpoint set empty.")
+            return
+        echo(
+            f"stale: {', '.join(frozen_report.stale)}"
+            "; downstream undetermined until pure heal"
+        )
+        raise SystemExit(2)
+
     report = heal_walk(resolution, config_dir.name, ctx, index, lambda _: False)
     if report.healed:
-        click.echo(f"pure heal: {', '.join(report.healed)}")
+        echo(f"pure heal: {', '.join(report.healed)}")
     if report.deployment_current:
-        click.echo(
-            f"{len(resolution.nodes)} nodes, all current — checkpoint set empty."
-        )
+        echo(f"{len(resolution.nodes)} nodes, all current — checkpoint set empty.")
     else:
-        click.echo(f"checkpoint set: {', '.join(report.checkpoint_set)}")
+        echo(f"checkpoint set: {', '.join(report.checkpoint_set)}")
         raise SystemExit(2)
 
 

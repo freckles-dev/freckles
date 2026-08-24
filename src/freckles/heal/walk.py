@@ -36,7 +36,14 @@ from graphlib import TopologicalSorter
 from typing import Any
 
 from freckles.builtins import BUILTINS
-from freckles.documents import Cid, Derivation, Provenance, Resolution, ResolvedNode
+from freckles.documents import (
+    Cid,
+    Derivation,
+    Provenance,
+    Resolution,
+    ResolvedNode,
+    encode,
+)
 from freckles.runner import RunContext, run_node
 from freckles.state import DerivationIndex
 from freckles.store import get_doc, put_doc
@@ -154,6 +161,86 @@ def heal(
                 name, node, inputs, derivation_cid, ctx, index, config_name, prior=False
             )
             report.healed.append(name)
+
+    # Sources imported from exactly this config snapshot — the frozen walk's
+    # licence to trust their refs until the working copy changes again.
+    ctx.store.set_ref(
+        f"cfg/{config_name}/last-walk-snapshot", resolution.config_snapshot
+    )
+    return report
+
+
+@dataclass(slots=True)
+class FrozenReport:
+    """A look-don't-touch staleness answer (status --frozen).
+
+    Exact where the derivation index can speak, honest ("undetermined")
+    where only a run could tell.
+    """
+
+    current: list[str] = field(default_factory=list)
+    stale: list[str] = field(default_factory=list)  # the stale frontier
+    undetermined: list[str] = field(default_factory=list)  # downstream of it
+
+    @property
+    def all_current(self) -> bool:
+        return not self.stale and not self.undetermined
+
+
+def frozen(
+    resolution: Resolution,
+    config_name: str,
+    ctx: RunContext,
+    index: DerivationIndex,
+) -> FrozenReport:
+    """Report staleness without running anything (status --frozen).
+
+    Sources are only knowable indirectly: their refs are trusted iff the
+    config snapshot is unchanged since the last walk that ran them. Beyond
+    the sources, derivations are pure knowledge — the index answers exactly;
+    consumers of anything stale or unknown stay undetermined.
+    """
+    report = FrozenReport()
+    claims: dict[str, Cid] = {}
+    unknown: set[str] = set()
+
+    sources_fresh = (
+        ctx.store.get_ref(f"cfg/{config_name}/last-walk-snapshot")
+        == resolution.config_snapshot
+    )
+
+    order = TopologicalSorter(
+        {name: set(node.consumes.values()) for name, node in resolution.nodes.items()}
+    )
+    for name in order.static_order():
+        node = resolution.nodes[name]
+
+        if unknown & set(node.consumes.values()):
+            unknown.add(name)
+            report.undetermined.append(name)
+            continue
+
+        if _is_source(node):
+            previous = ctx.store.get_ref(f"cfg/{config_name}/nodes/{name}")
+            if sources_fresh and previous is not None:
+                claims[name] = previous
+                report.current.append(name)
+            else:
+                unknown.add(name)
+                report.stale.append(name)
+            continue
+
+        inputs = {kind: claims[provider] for kind, provider in node.consumes.items()}
+        derivation = Derivation(plugin=node.plugin, config=node.config, inputs=inputs)
+        _, derivation_cid = encode(derivation.to_doc())  # computed, never stored
+
+        cached = index.lookup(derivation_cid)
+        if cached is not None:
+            claims[name] = cached
+            report.current.append(name)
+        else:
+            unknown.add(name)
+            report.stale.append(name)
 
     return report
 
