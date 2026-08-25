@@ -5,7 +5,8 @@ import os
 import pytest
 
 from freckles.documents import ResolvedNode
-from freckles.runner import RunError, run_node
+from freckles.runner import RunError, run_node, run_verify
+from freckles.store import put_doc
 
 ECHO_PLUGIN = """
 import json, os, sys
@@ -119,3 +120,58 @@ def test_claim_kind_must_match_resolved_produces(ctx, make_plugin):
     plugin = make_plugin("impostor", WRONG_KIND_PLUGIN)
     with pytest.raises(RunError, match="does not match resolved produced kind"):
         run_node("demo/impostor", resolved(plugin, produces="thing"), {}, ctx)
+
+
+VERIFY_PLUGIN = """
+import json, sys
+request = json.load(sys.stdin)
+claim = request["verify"]["claim"]
+if claim.get("kind") == "deployed-site":
+    sys.exit(0)          # CONFIRMED -- silence is part of the contract
+print("claim drifted", file=sys.stderr)
+sys.exit(9)
+"""
+
+
+def test_spawned_verify_confirms_by_exit_0_with_silent_stdout(ctx, make_plugin):
+    plugin = make_plugin(
+        "checker",
+        VERIFY_PLUGIN,
+        produces="deployed-site",
+        effect="effectful",
+        verify=True,
+    )
+    node = resolved(plugin, produces="deployed-site", effect="effectful")
+    claim = {"schema": 1, "kind": "deployed-site"}
+    claim_cid = put_doc(ctx.store, claim)
+
+    assert run_verify("demo/site", node, claim_cid, claim, {}, ctx) is None
+
+
+def test_spawned_verify_contradicts_by_nonzero_with_stderr_message(ctx, make_plugin):
+    plugin = make_plugin(
+        "checker",
+        VERIFY_PLUGIN,
+        produces="deployed-site",
+        effect="effectful",
+        verify=True,
+    )
+    node = resolved(plugin, produces="deployed-site", effect="effectful")
+    claim = {"schema": 1, "kind": "something-else"}
+    claim_cid = put_doc(ctx.store, claim)
+
+    message = run_verify("demo/site", node, claim_cid, claim, {}, ctx)
+
+    assert message == "claim drifted"
+
+
+def test_spawned_verify_requires_the_manifest_entrypoint(ctx, make_plugin):
+    plugin = make_plugin(
+        "mute", VERIFY_PLUGIN, produces="deployed-site", effect="effectful"
+    )
+    node = resolved(plugin, produces="deployed-site", effect="effectful")
+    claim = {"schema": 1, "kind": "deployed-site"}
+    claim_cid = put_doc(ctx.store, claim)
+
+    with pytest.raises(RunError, match="no verify entrypoint"):
+        run_verify("demo/site", node, claim_cid, claim, {}, ctx)

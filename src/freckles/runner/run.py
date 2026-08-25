@@ -159,7 +159,10 @@ def run_verify(
     reserved for what keeps verification from happening at all — no verify
     entrypoint, an unresolvable node.
     """
-    if isinstance(node.plugin, dict) and "verify" not in node.config:
+    if isinstance(node.plugin, Cid):
+        if not get_doc(ctx.store, node.plugin).get("verify"):
+            raise RunError(f"{name}: no verify entrypoint")
+    elif "verify" not in node.config:
         raise RunError(f"{name}: no verify entrypoint")
 
     workspace = materialize_workspace(ctx.workspace_root, name, {}, ctx.store)
@@ -170,14 +173,8 @@ def run_verify(
     request["verify"] = verify_ref
 
     if isinstance(node.plugin, Cid):
-        try:
-            outcome_doc = _process_adapter(node.plugin, request, ctx)
-        except RunError as error:
-            # The verify protocol: a nonzero exit IS the contradiction.
-            return str(error)
-    else:
-        outcome_doc = _in_process_adapter(node.plugin["builtin"], request, ctx)
-
+        return _process_verify(node.plugin, request, ctx)
+    outcome_doc = _in_process_adapter(node.plugin["builtin"], request, ctx)
     if "error" in outcome_doc:
         return outcome_doc["error"].get("message", "contradicted")
     return None
@@ -193,10 +190,10 @@ def _in_process_adapter(
     return implementation(request, ctx)
 
 
-def _process_adapter(
+def _spawn_plugin(
     plugin_cid: Cid, request: dict[str, Any], ctx: RunContext
-) -> dict[str, Any]:
-    """Plugins: materialize the payload, spawn it, speak DAG-JSON on stdio."""
+) -> subprocess.CompletedProcess:
+    """Materialize the payload and run it over the request document."""
     plugin_claim = get_doc(ctx.store, plugin_cid)
     workspace = request["workspace"]["dir"]
     entrypoint = Path(workspace) / f"plugin-{plugin_claim['name']}"
@@ -215,7 +212,7 @@ def _process_adapter(
 
     env = scrubbed_env(request["workspace"]["path"], workspace=Path(workspace))
     try:
-        completed = subprocess.run(
+        return subprocess.run(
             argv,
             input=to_wire(request).encode(),
             capture_output=True,
@@ -227,6 +224,32 @@ def _process_adapter(
             f"plugin {plugin_claim['name']!r} is not executable on this platform",
             str(exc),
         ) from exc
+
+
+def _process_verify(
+    plugin_cid: Cid, request: dict[str, Any], ctx: RunContext
+) -> str | None:
+    """The verify protocol over a spawned plugin: the exit code is the verdict.
+
+    Exit 0 is CONFIRMED — stdout may stay silent. Nonzero is CONTRADICTED,
+    with the message from a structured error document or the stderr tail.
+    """
+    completed = _spawn_plugin(plugin_cid, request, ctx)
+    if completed.returncode == 0:
+        return None
+    stderr = completed.stderr.decode(errors="replace").strip()
+    try:
+        error = from_wire(completed.stdout)["error"]
+        return error.get("message") or stderr or "contradicted"
+    except (ValueError, KeyError, TypeError):
+        return stderr or f"verify exited {completed.returncode}"
+
+
+def _process_adapter(
+    plugin_cid: Cid, request: dict[str, Any], ctx: RunContext
+) -> dict[str, Any]:
+    """Plugins: materialize the payload, spawn it, speak DAG-JSON on stdio."""
+    completed = _spawn_plugin(plugin_cid, request, ctx)
     if completed.returncode != 0:
         detail = completed.stderr.decode(errors="replace")
         try:

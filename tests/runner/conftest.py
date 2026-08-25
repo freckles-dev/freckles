@@ -33,22 +33,22 @@ def ctx(tmp_path):
 def make_plugin(ctx):
     """Store a fake plugin (claim + payload blob); returns the claim's CID."""
 
-    def _make(name, body, produces="thing", effect="pure"):
+    def _make(name, body, produces="thing", effect="pure", verify=False):
         payload = f"#!/usr/bin/env python3\n{body}\n".encode()
         payload_cid = cid_for_blob(payload)
         ctx.store.put(payload_cid, payload)
-        return put_doc(
-            ctx.store,
-            {
-                "schema": SCHEMA,
-                "kind": "plugin",
-                "name": name,
-                "version": "0.0.1",
-                "produces": produces,
-                "effect": effect,
-                "entrypoint": name,
-                "payload": payload_cid,
-            },
-        )
+        manifest = {
+            "schema": SCHEMA,
+            "kind": "plugin",
+            "name": name,
+            "version": "0.0.1",
+            "produces": produces,
+            "effect": effect,
+            "entrypoint": name,
+            "payload": payload_cid,
+        }
+        if verify:
+            manifest["verify"] = True  # the minimal verify entrypoint (M4)
+        return put_doc(ctx.store, manifest)
 
     return _make
