@@ -15,3 +15,12 @@ def test_the_dev_group_is_retired(world):
 
     assert result.exit_code == 2
     assert "no such command" in result.stderr.lower()
+
+
+def test_selftest_names_its_organs(world):
+    """CI-only probe (hidden): grows with the organs the frozen binary carries."""
+    result = world.invoke("selftest")
+
+    assert result.exit_code == 0
+    for organ in ("sqlite3", "libipld", "CIDv1", "urllib"):
+        assert organ in result.output

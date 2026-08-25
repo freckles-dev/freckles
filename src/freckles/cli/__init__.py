@@ -304,6 +304,7 @@ def store_cat(cid: str) -> None:
 def selftest() -> None:
     """CI-only: prove the frozen artifact carries its organs (grows per milestone)."""
     import sqlite3
+    import urllib.request
 
     from freckles.documents import cid_for_blob, decode, encode
 
@@ -314,8 +315,9 @@ def selftest() -> None:
     data, cid = encode(document)
     assert decode(data) == document, "codec round-trip failed"
     assert str(cid).startswith("bafyrei"), "CID form wrong"
+    assert callable(urllib.request.urlopen), "urllib organ missing"  # fetch-verify
 
-    click.echo("selftest ok: sqlite3, libipld codec, CIDv1")
+    click.echo("selftest ok: sqlite3, libipld codec, CIDv1, urllib")
 
 
 def _context(config_dir: Path, data_dir: Path):
