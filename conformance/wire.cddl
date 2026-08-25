@@ -28,7 +28,11 @@ request = {
                              ; asset had a list)
   workspace: {
     dir: tstr,               ; isolated, runner-owned
-    path: [*tstr]            ; constructed from consumed tool claims
+    path: [*tstr],           ; constructed from consumed tool claims
+    envs: tstr               ; persistent realization root (M6): outlives
+                             ; runs, machine-local, runner-owned — where a
+                             ; plugin realizes environments (design.md §6);
+                             ; realized content never enters the CAS (§7)
   },
   ? prior: outcome-ref       ; effectful re-runs only (design.md §8)
   ? verify: outcome-ref      ; verify mode (M4): the outcome under test;

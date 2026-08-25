@@ -70,6 +70,7 @@ def world(tmp_path):
         config_dir=config_dir,
         freckles_version=FRECKLES_VERSION,
         workspace_root=tmp_path / "run",
+        envs_root=tmp_path / "envs",
     )
     ctx.workspace_root.mkdir()
     return ctx, DerivationIndex(db), config_dir

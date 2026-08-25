@@ -40,4 +40,5 @@ class RunContext:
     config_dir: Path
     freckles_version: str
     workspace_root: Path
+    envs_root: Path  # persistent realization root (design.md §6, M6)
     audit: AuditLog | None = None  # every walk-driven run appends here

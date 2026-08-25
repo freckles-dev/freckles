@@ -59,6 +59,7 @@ def build_request(
     workspace_dir: str,
     path: list[str],
     prior: dict[str, Any] | None,
+    envs: str,
 ) -> dict[str, Any]:
     """The wire request document (wire.cddl).
 
@@ -82,7 +83,7 @@ def build_request(
         "schema": SCHEMA,
         "node": {"name": name, "config": node.config},
         "inputs": request_inputs,
-        "workspace": {"dir": workspace_dir, "path": path},
+        "workspace": {"dir": workspace_dir, "path": path, "envs": envs},
     }
     if node.effect == "effectful" and prior is not None:
         request["prior"] = prior
@@ -120,8 +121,11 @@ def run_node(
 ) -> Outcome:
     """Run one resolved node through the adapter its plugin id selects."""
     workspace = materialize_workspace(ctx.workspace_root, name, inputs, ctx.store)
+    ctx.envs_root.mkdir(parents=True, exist_ok=True)
     path = list(BASELINE_PATH)
-    request = build_request(name, node, inputs, str(workspace), path, prior)
+    request = build_request(
+        name, node, inputs, str(workspace), path, prior, str(ctx.envs_root)
+    )
 
     if isinstance(node.plugin, Cid):
         outcome_doc = _process_adapter(node.plugin, request, ctx)
@@ -169,7 +173,10 @@ def run_verify(
         raise RunError(f"{name}: no verify entrypoint")
 
     workspace = materialize_workspace(ctx.workspace_root, name, {}, ctx.store)
-    request = build_request(name, node, {}, str(workspace), list(BASELINE_PATH), None)
+    ctx.envs_root.mkdir(parents=True, exist_ok=True)
+    request = build_request(
+        name, node, {}, str(workspace), list(BASELINE_PATH), None, str(ctx.envs_root)
+    )
     verify_ref: dict[str, Any] = {"cid": claim_cid, "claim": claim}
     if annotations:
         verify_ref["annotations"] = annotations

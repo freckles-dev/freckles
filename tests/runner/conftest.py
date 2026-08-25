@@ -26,6 +26,7 @@ def ctx(tmp_path):
         config_dir=config_dir,
         freckles_version="0.0.0-test",
         workspace_root=workspace_root,
+        envs_root=tmp_path / "envs",
     )
 
 

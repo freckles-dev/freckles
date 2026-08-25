@@ -44,7 +44,7 @@ def test_effectful_request_carries_resolved_plaintext(ctx, sops_lab):
     inputs = {"secret": imported_secret(ctx, sops_lab, "hunter2-plaintext")}
 
     request = build_request(
-        "deploy/site", consumer("effectful"), inputs, "/ws", [], None
+        "deploy/site", consumer("effectful"), inputs, "/ws", [], None, "/envs"
     )
 
     assert request["inputs"]["secret"]["resolved"] == {"value": "hunter2-plaintext"}
@@ -54,7 +54,9 @@ def test_pure_request_never_carries_plaintext(ctx, sops_lab):
     """Flow B: pure consumers get the ciphertext claim — nothing more."""
     inputs = {"secret": imported_secret(ctx, sops_lab, "hunter2-plaintext")}
 
-    request = build_request("render/site", consumer("pure"), inputs, "/ws", [], None)
+    request = build_request(
+        "render/site", consumer("pure"), inputs, "/ws", [], None, "/envs"
+    )
 
     entry = request["inputs"]["secret"]
     assert "resolved" not in entry
@@ -80,7 +82,13 @@ def test_reference_shape_fails_cleanly(ctx):
 
     with pytest.raises(RunError, match="no resolver"):
         build_request(
-            "deploy/site", consumer("effectful"), {"secret": reference}, "/ws", [], None
+            "deploy/site",
+            consumer("effectful"),
+            {"secret": reference},
+            "/ws",
+            [],
+            None,
+            "/envs",
         )
 
 
@@ -104,7 +112,7 @@ def test_detached_secret_resolves_from_the_working_copy(ctx, sops_lab):
     }
 
     request = build_request(
-        "deploy/site", consumer("effectful"), inputs, "/ws", [], None
+        "deploy/site", consumer("effectful"), inputs, "/ws", [], None, "/envs"
     )
 
     assert request["inputs"]["secret"]["resolved"] == {"value": "det4ched"}
@@ -126,7 +134,9 @@ def test_tampered_ciphertext_fails_authentication(ctx, sops_lab):
     source.write_text(tampered)
 
     with pytest.raises(RunError, match="authentication"):
-        build_request("deploy/site", consumer("effectful"), inputs, "/ws", [], None)
+        build_request(
+            "deploy/site", consumer("effectful"), inputs, "/ws", [], None, "/envs"
+        )
 
 
 def test_command_secret_env_hands_plaintext_to_the_wrapped_process(ctx, sops_lab):
@@ -161,4 +171,6 @@ def test_missing_age_key_fails_cleanly(ctx, sops_lab, monkeypatch):
     monkeypatch.delenv("SOPS_AGE_KEY_FILE")
 
     with pytest.raises(RunError, match="SOPS_AGE_KEY_FILE"):
-        build_request("deploy/site", consumer("effectful"), inputs, "/ws", [], None)
+        build_request(
+            "deploy/site", consumer("effectful"), inputs, "/ws", [], None, "/envs"
+        )

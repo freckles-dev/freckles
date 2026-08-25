@@ -252,6 +252,17 @@ content-addressed implementation it runs.
   claim's `content` to the tree's CID. Plugins never touch CIDs or the
   store; a claim already carrying `content`, or a path escaping the
   workspace, fails the run. One directory per outcome in v1.
+- **The realization root** (amendment 2026-08-25, M6): realized
+  environments live outside the CAS (§7), and workspaces are ephemeral —
+  so the request's workspace section carries `envs`, a persistent,
+  runner-owned, machine-local directory that outlives runs. A plugin
+  realizing an environment (bootstrap-mise laying down mise, mise-install
+  installing tools) installs under it and records the resulting binary
+  path in the outcome's annotations; the runner builds the constructed
+  PATH from exactly those annotations on consumed `bootstrap` and `tool`
+  claims. A consumed `bootstrap`/`tool` claim with no path annotation on
+  this machine is a hard run error in v1 — realization gaps are not
+  healed automatically.
 - **The sets**: built-ins — `import-values`, `import-file-tree`,
   `import-sops`, `import-git`, `fetch-verify`, `command`. Standard
   plugins — `bootstrap-mise` (default), `bootstrap-pixi` (first-class

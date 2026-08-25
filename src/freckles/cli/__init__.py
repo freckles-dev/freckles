@@ -335,6 +335,7 @@ def _context(config_dir: Path, data_dir: Path):
         config_dir=config_dir,
         freckles_version=version,
         workspace_root=data_dir / "run",
+        envs_root=data_dir / "envs",
         audit=AuditLog(data_dir / "audit.jsonl"),
     )
     return ctx, DerivationIndex(db)
