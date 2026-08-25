@@ -23,6 +23,7 @@ Annotations index (with distrust marks and secret-aware redaction), derivation
 index (prunable, rebuildable, never a GC root), audit log.
 """
 
+from freckles.state.audit import AuditLog, AuditRecord
 from freckles.state.db import AnnotationsIndex, DerivationIndex, StateDb
 
-__all__ = ["AnnotationsIndex", "DerivationIndex", "StateDb"]
+__all__ = ["AnnotationsIndex", "AuditLog", "AuditRecord", "DerivationIndex", "StateDb"]
