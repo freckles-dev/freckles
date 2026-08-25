@@ -153,3 +153,77 @@ nodes:
     )
     with pytest.raises(ResolutionError, match="purity"):
         resolve(directory, store, "0.0.0-test")
+
+
+# --- op -> plugin claim binding (M5): by manifest name, pinned by CID -------
+
+
+def _put_plugin(store, name="copier", version="0.2.0", produces="file-tree"):
+    from freckles.documents import SCHEMA
+    from freckles.store import put_blob, put_doc
+
+    payload = put_blob(store, b"#!/usr/bin/env python3\npass\n")
+    return put_doc(
+        store,
+        {
+            "schema": SCHEMA,
+            "kind": "plugin",
+            "name": name,
+            "version": version,
+            "produces": produces,
+            "effect": "pure",
+            "entrypoint": name,
+            "payload": payload,
+        },
+    )
+
+
+def test_op_binds_to_the_store_plugin_claim_by_manifest_name(store, config_dir):
+    plugin_cid = _put_plugin(store)
+    (config_dir / "freckles.yaml").write_text(
+        """
+nodes:
+  render/scaffold:
+    op: copier
+    config: {template: web}
+"""
+    )
+
+    resolution, _ = resolve(config_dir, store, "0.0.0-test")
+
+    node = resolution.nodes["render/scaffold"]
+    assert node.plugin == plugin_cid
+    assert node.produces == "file-tree"
+    assert node.effect == "pure"
+
+
+def test_node_version_pin_selects_among_plugin_versions(store, config_dir):
+    _put_plugin(store, version="0.1.0")
+    pinned = _put_plugin(store, version="0.2.0")
+    (config_dir / "freckles.yaml").write_text(
+        """
+nodes:
+  render/scaffold:
+    op: copier
+    version: 0.2.0
+    config: {template: web}
+"""
+    )
+
+    resolution, _ = resolve(config_dir, store, "0.0.0-test")
+
+    assert resolution.nodes["render/scaffold"].plugin == pinned
+
+
+def test_unknown_op_with_no_provider_is_a_hard_error(store, config_dir):
+    (config_dir / "freckles.yaml").write_text(
+        """
+nodes:
+  render/scaffold:
+    op: nonexistent-op
+    config: {}
+"""
+    )
+
+    with pytest.raises(ResolutionError, match="nonexistent-op"):
+        resolve(config_dir, store, "0.0.0-test")

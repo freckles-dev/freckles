@@ -122,7 +122,51 @@ def _node_facts(
             consumed or sorted(manifest.get("consumes", {})),
         )
 
-    raise ResolutionError(f"{node_name}: unknown op {op!r} and no plugin pinned")
+    found = _find_plugin(store, node_name, op, node.get("version"))
+    if found is not None:
+        plugin_cid, manifest = found
+        return (
+            plugin_cid,
+            manifest["produces"],
+            manifest["effect"],
+            consumed or sorted(manifest.get("consumes", {})),
+        )
+
+    raise ResolutionError(
+        f"{node_name}: unknown op {op!r} — not a built-in, and no plugin "
+        f"claim named {op!r} in the store"
+    )
+
+
+_DAG_CBOR = 0x71
+
+
+def _find_plugin(
+    store: StoreBackend, node_name: str, name: str, version: str | None
+) -> tuple[Cid, dict[str, Any]] | None:
+    """The op -> plugin binding (M5), matched by manifest name.
+
+    The match is pinned into the resolution by CID. Multiple acquired
+    versions without a node `version:` pin are a hard error — resolution
+    never guesses an ordering.
+    """
+    matches = [
+        (cid, doc)
+        for cid in store.cids()
+        if cid.codec == _DAG_CBOR
+        and (doc := get_doc(store, cid)).get("kind") == "plugin"
+        and doc.get("name") == name
+        and (version is None or doc.get("version") == version)
+    ]
+    if not matches:
+        return None
+    if len(matches) > 1:
+        versions = ", ".join(sorted(str(doc.get("version")) for _, doc in matches))
+        raise ResolutionError(
+            f"{node_name}: multiple plugin claims named {name!r} "
+            f"(versions {versions}) — pin one with: version: <version>"
+        )
+    return matches[0]
 
 
 def _wire_edge(
