@@ -21,7 +21,8 @@
 
 Both live in one sqlite file on the design's "out" side — never in the CAS.
 The derivation index is a prunable, rebuildable cache and never a GC root.
-Distrust marks and the audit log join with their milestones.
+The audit log lives beside them as JSON-lines (audit.py); distrust marks
+join with the drift milestone.
 """
 
 from __future__ import annotations
