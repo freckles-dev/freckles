@@ -11,12 +11,18 @@ from freckles.store import FolderStore, SqliteStore, get_doc, put_blob, put_doc
 
 
 @pytest.fixture(params=["sqlite", "folder"])
-def backend(request, tmp_path):
+def backend_factory(request, tmp_path):
+    """Opens the same store on every call — reopening is part of the contract."""
     if request.param == "sqlite":
-        return SqliteStore(tmp_path / "store.sqlite")
+        return lambda: SqliteStore(tmp_path / "store.sqlite")
     if request.param == "folder":
-        return FolderStore(tmp_path / "store")
+        return lambda: FolderStore(tmp_path / "store")
     raise AssertionError(f"unknown backend {request.param}")
+
+
+@pytest.fixture
+def backend(backend_factory):
+    return backend_factory()
 
 
 def test_put_get_round_trips(backend):
@@ -69,13 +75,12 @@ def test_doc_helpers_round_trip(backend):
     assert get_doc(backend, cid) == doc
 
 
-def test_persistence_across_reopen(tmp_path):
-    path = tmp_path / "store.sqlite"
-    first = SqliteStore(path)
+def test_persistence_across_reopen(backend_factory):
+    first = backend_factory()
     cid = put_blob(first, b"durable")
     first.set_ref("r", cid)
     first.close()
 
-    second = SqliteStore(path)
+    second = backend_factory()
     assert second.get(cid) == b"durable"
     assert second.get_ref("r") == cid
