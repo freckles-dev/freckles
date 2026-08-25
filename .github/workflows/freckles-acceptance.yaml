@@ -1,0 +1,22 @@
+name: "freckles acceptance"
+# Project-owned workflow, outside the template's files. The executable
+# acceptance bar (docs/milestones-v1.md): the mechanics-complete synthetic
+# chain against real upstreams — real mise, pixi, and copier downloads —
+# driven by `acceptance/` through the installed CLI. Network-bound, so
+# never per-push: manual dispatch here, plus workflow_call from the
+# release workflow, which makes it mandatory on version tags.
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  acceptance-bar:
+    name: the acceptance bar (real downloads)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-uv-env
+      - name: run the acceptance suite
+        run: uv run pytest acceptance -s

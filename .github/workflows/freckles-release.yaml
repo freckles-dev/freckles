@@ -1,0 +1,141 @@
+name: "freckles release"
+# Project-owned workflow, outside the template's files (Packaging and
+# distribution, M9). On version tags:
+#   - the acceptance workflow runs, mandatorily (workflow_call)
+#   - onefile binaries compile per platform, bundling the ssh extra —
+#     the shipped mode — and selftest their organs on the native runner
+#   - the standard plugins build into payload artifacts off
+#     scripts/build_plugin_payloads.py
+#   - one SHA256SUMS covers binaries and payloads; everything attaches to
+#     the GitHub Release: a pinned URL + checksum is a complete install.
+# The template workflow (build-linux.yaml) runs its own test/typecheck/
+# lint gates on the same tag push; the gate job below polls those checks
+# on the tag's SHA so the Release cannot be created unless they are green
+# — the same gating the PyPI and conda jobs get via `needs:`.
+on:
+  push:
+    tags: ["[0-9]*", "v[0-9]*"]
+
+jobs:
+
+  acceptance:
+    name: acceptance
+    uses: ./.github/workflows/freckles-acceptance.yaml
+
+  onefile:
+    name: nuitka onefile (${{ matrix.arch }})
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # uv-dynamic-versioning derives the version from git history/tags.
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-uv-env
+      - name: install compile group (with the shipped ssh extra)
+        run: uv sync --locked --extra ssh --group compile
+      - name: compile onefile binary
+        run: >
+          uv run nuitka --onefile --assume-yes-for-downloads
+          --output-dir=build/nuitka scripts/nuitka_entry.py
+      - name: name the release artifact
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p release
+          cp build/nuitka/nuitka_entry.bin \
+            "release/freckles-${version}-linux-${{ matrix.arch }}"
+      - name: smoke-run and selftest on the native runner
+        run: |
+          binary=(release/freckles-*)
+          out=$("${binary[0]}" --version)
+          echo "$out"
+          echo "$out" | grep -q freckles
+          "${binary[0]}" selftest
+      - uses: actions/upload-artifact@v6
+        with:
+          name: onefile-${{ matrix.arch }}
+          path: release/
+
+  plugin-payloads:
+    name: build standard-plugin payloads
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-uv-env
+      - name: build payloads
+        run: uv run python scripts/build_plugin_payloads.py release/
+      - uses: actions/upload-artifact@v6
+        with:
+          name: plugin-payloads
+          path: release/
+
+  gate-on-template-checks:
+    name: wait for test/typecheck/lint on this tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: poll the template workflow's check runs on this SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # The tag push triggers build-linux.yaml in parallel; its job names
+        # are the check-run names. 7 = 3 pytest (python matrix) + 3 type
+        # check + 1 lint — a grown matrix still passes the >= bar.
+        run: |
+          required='pytest on linux|type check on linux|linting-linux'
+          for attempt in $(seq 1 120); do
+            runs=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
+              --paginate -q '.check_runs[] | [.name, .status, .conclusion] | @tsv')
+            matched=$(echo "$runs" | grep -E "^($required)" || true)
+            count=$(echo "$matched" | grep -c . || true)
+            incomplete=$(echo "$matched" | awk -F'\t' '$2 != "completed"' | grep -c . || true)
+            failed=$(echo "$matched" | awk -F'\t' '$2 == "completed" && $3 != "success"' | grep -c . || true)
+            if [ "$count" -ge 7 ] && [ "$incomplete" -eq 0 ]; then
+              if [ "$failed" -eq 0 ]; then
+                echo "all gates green:"; echo "$matched"; exit 0
+              fi
+              echo "a gate failed:"; echo "$matched"; exit 1
+            fi
+            echo "waiting for gates (${count} matched, ${incomplete} incomplete, attempt ${attempt})"
+            sleep 30
+          done
+          echo "timed out waiting for the template workflow's gates"; exit 1
+
+  release:
+    name: create the GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - acceptance
+      - onefile
+      - plugin-payloads
+      - gate-on-template-checks
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: gather artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: release/
+          merge-multiple: true
+      - name: emit SHA256SUMS
+        run: |
+          cd release
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+      - name: create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME"
+          --repo "$GITHUB_REPOSITORY"
+          --title "freckles ${GITHUB_REF_NAME}"
+          --verify-tag
+          --generate-notes
+          release/*
