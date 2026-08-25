@@ -105,7 +105,8 @@ setting the claim's content link. Plugins never touch CIDs or the store.
 Making a trusted claim usable on the local machine, producing its
 annotations. Pure claims realize by local re-derivation; effectful claims
 need no realization to be consumed — their claim fields suffice, and only
-re-running their own node is machine-bound.
+re-running their own node is machine-bound. Realized environments live
+under the persistent, machine-local realization root — never in the store.
 
 **Stale**:
 A node whose current claim was not produced by its current derivation —
