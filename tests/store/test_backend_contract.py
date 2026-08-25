@@ -118,6 +118,34 @@ def test_gc_collects_unreferenced_past_grace(backend):
     assert backend.has(kept_cid)
 
 
+def test_gc_rereference_clears_the_mark(backend):
+    blob = put_blob(backend, b"wanted again")
+    t0 = datetime(2026, 8, 25, tzinfo=UTC)
+
+    backend.gc(extract_links, GC_GRACE, now=t0)  # marks
+    backend.set_ref("cfg/demo/nodes/back", blob)  # re-referenced within grace
+    backend.gc(extract_links, GC_GRACE, now=t0 + timedelta(days=15))
+    backend.set_ref("cfg/demo/nodes/back", put_blob(backend, b"other"))
+
+    # unreferenced again: the old mark must not carry over — grace restarts
+    report = backend.gc(extract_links, GC_GRACE, now=t0 + timedelta(days=16))
+    assert backend.has(blob)
+    assert report.collected == 0
+
+
+def test_gc_marks_survive_reopen(backend_factory):
+    first = backend_factory()
+    orphan = put_blob(first, b"orphan")
+    t0 = datetime(2026, 8, 25, tzinfo=UTC)
+    first.gc(extract_links, GC_GRACE, now=t0)
+    first.close()
+
+    second = backend_factory()
+    report = second.gc(extract_links, GC_GRACE, now=t0 + timedelta(days=15))
+    assert report.collected == 1
+    assert not second.has(orphan)
+
+
 def test_persistence_across_reopen(backend_factory):
     first = backend_factory()
     cid = put_blob(first, b"durable")
