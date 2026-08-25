@@ -34,6 +34,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from graphlib import TopologicalSorter
+from pathlib import Path
 from typing import Any
 
 from freckles.builtins import BUILTINS
@@ -320,6 +321,55 @@ def _run(
     if outcome.annotations:
         ctx.annotations.set(claim_cid, outcome.annotations)
     return claim_cid
+
+
+def heal_rounds(
+    config_dir: Path,
+    config_name: str,
+    ctx: RunContext,
+    index: DerivationIndex,
+    confirm: Callable[[Checkpoint], bool],
+) -> tuple[Resolution, HealReport]:
+    """Resolve-heal rounds until every op is bound (M5, design.md §6).
+
+    A round that leaves ops deferred must have acquired at least one plugin
+    for the next round to bind — no shrink means no progress, and that is a
+    resolution error, never a spin.
+    """
+    from freckles.resolver import ResolutionError, resolve_round
+
+    total = HealReport()
+    previous: set[str] | None = None
+    while True:
+        resolution, _, deferred = resolve_round(
+            config_dir, ctx.store, ctx.freckles_version, config_name
+        )
+        report = heal(resolution, config_name, ctx, index, confirm)
+        _merge_report(total, report)
+        if not deferred:
+            _settle_report(total)
+            return resolution, total
+        if previous is not None and set(deferred) >= previous:
+            names = ", ".join(sorted(deferred))
+            raise ResolutionError(
+                f"acquisition made no progress — still unbound: {names}"
+            )
+        previous = set(deferred)
+
+
+def _merge_report(total: HealReport, round_report: HealReport) -> None:
+    for field_name in ("current", "healed", "confirmed", "checkpoint_set", "hidden"):
+        seen = set(getattr(total, field_name))
+        getattr(total, field_name).extend(
+            name for name in getattr(round_report, field_name) if name not in seen
+        )
+
+
+def _settle_report(total: HealReport) -> None:
+    """Later rounds re-see earlier work: ran beats current, ran beats hidden."""
+    ran = set(total.healed) | set(total.confirmed)
+    total.current = [name for name in total.current if name not in ran]
+    total.hidden = [name for name in total.hidden if name not in ran]
 
 
 def _record_run(

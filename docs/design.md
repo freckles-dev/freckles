@@ -205,7 +205,18 @@ content-addressed implementation it runs.
   payload in the CAS, acquired through the same DAG that installs tools,
   pinned in provenance by claim CID. Only a minimal built-in set ships
   with freckles itself to break the bootstrap circle; the freckles version
-  enters provenance for built-in-produced outcomes.
+  enters provenance for built-in-produced outcomes. Acquisition mechanics
+  (amendment 2026-08-25, M5): an `op` naming no built-in binds to the
+  store plugin claim whose manifest name matches (a node `version:` pin
+  selects among versions; unpinned multiplicity is a hard error). Day-1
+  from zero, a node whose op-plugin no store claim yet provides is
+  *deferred* — not an error — when a declared node produces `kind:
+  plugin` with that manifest name; heal drives **resolve rounds**: walk
+  what resolved, re-resolve, continue until nothing stays deferred (no
+  shrink means no progress, a hard error). The final, complete
+  resolution document is the one the ref rests on. Manifest fields for a
+  fetched plugin come from the fetching node's config `manifest:` block
+  — v1 plugins publish as bare executables at pinned URLs.
 - **Manifest**: `name`, `version`, `produces`, `consumes` (selectors),
   `effect: pure | effectful`, `platforms`, `entrypoint`; optional
   `requires_privilege`, `verify`; named future entrypoints `destroy` and

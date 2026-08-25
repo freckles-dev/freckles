@@ -23,6 +23,20 @@
 passes const-true, tests pass scripted answers.
 """
 
-from freckles.heal.walk import Checkpoint, FrozenReport, HealReport, frozen, heal
+from freckles.heal.walk import (
+    Checkpoint,
+    FrozenReport,
+    HealReport,
+    frozen,
+    heal,
+    heal_rounds,
+)
 
-__all__ = ["Checkpoint", "FrozenReport", "HealReport", "frozen", "heal"]
+__all__ = [
+    "Checkpoint",
+    "FrozenReport",
+    "HealReport",
+    "frozen",
+    "heal",
+    "heal_rounds",
+]

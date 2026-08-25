@@ -19,6 +19,6 @@
 
 """Configuration to resolution document: loading, edge inference, ambiguity errors."""
 
-from freckles.resolver.resolve import ResolutionError, resolve
+from freckles.resolver.resolve import ResolutionError, resolve, resolve_round
 
-__all__ = ["ResolutionError", "resolve"]
+__all__ = ["ResolutionError", "resolve", "resolve_round"]

@@ -87,13 +87,12 @@ def main(data_dir: Path | None) -> None:
 @click.option("--yes", is_flag=True, help="Auto-confirm every checkpoint.")
 def heal(yes: bool) -> None:
     """Resolve the configuration in the current directory and heal it."""
-    from freckles.heal import Checkpoint
-    from freckles.heal import heal as heal_walk
+    from freckles.heal import Checkpoint, heal_rounds
+    from freckles.resolver import ResolutionError
     from freckles.runner import RunError
 
     config_dir = Path.cwd()
     ctx, index = _context(config_dir, _data_dir())
-    resolution, _ = _resolve_or_die(config_dir, ctx.store)
 
     def confirm(checkpoint: Checkpoint) -> bool:
         click.echo(f"  ▶ {checkpoint.name}  ({checkpoint.op} · {checkpoint.effect})")
@@ -116,7 +115,10 @@ def heal(yes: bool) -> None:
         return click.confirm("      proceed?", default=False)
 
     try:
-        report = heal_walk(resolution, config_dir.name, ctx, index, confirm)
+        _, report = heal_rounds(config_dir, config_dir.name, ctx, index, confirm)
+    except ResolutionError as error:
+        click.echo(f"error: {error}", err=True)
+        raise SystemExit(1) from error
     except RunError as error:
         raise _run_failed(error) from error
     for name in report.healed:
@@ -135,7 +137,8 @@ def heal(yes: bool) -> None:
 def status(frozen: bool, check: bool) -> None:
     """Report currency: heal stale pures, name the exact checkpoint set (R2)."""
     from freckles.heal import frozen as frozen_walk
-    from freckles.heal import heal as heal_walk
+    from freckles.heal import heal_rounds
+    from freckles.resolver import ResolutionError
     from freckles.runner import RunError
 
     def echo(message: str) -> None:
@@ -144,9 +147,9 @@ def status(frozen: bool, check: bool) -> None:
 
     config_dir = Path.cwd()
     ctx, index = _context(config_dir, _data_dir())
-    resolution, _ = _resolve_or_die(config_dir, ctx.store)
 
     if frozen:
+        resolution, _ = _resolve_or_die(config_dir, ctx.store)
         frozen_report = frozen_walk(resolution, config_dir.name, ctx, index)
         if frozen_report.all_current:
             echo(f"{len(resolution.nodes)} nodes, all current — checkpoint set empty.")
@@ -158,7 +161,12 @@ def status(frozen: bool, check: bool) -> None:
         raise SystemExit(2)
 
     try:
-        report = heal_walk(resolution, config_dir.name, ctx, index, lambda _: False)
+        resolution, report = heal_rounds(
+            config_dir, config_dir.name, ctx, index, lambda _: False
+        )
+    except ResolutionError as error:
+        click.echo(f"error: {error}", err=True)
+        raise SystemExit(1) from error
     except RunError as error:
         raise _run_failed(error) from error
     if report.healed:
