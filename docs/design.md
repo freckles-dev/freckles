@@ -282,7 +282,9 @@ content-addressed implementation it runs.
   2026-08-25, M8, the named design act): SSH remotes ride dulwich's
   paramiko vendor behind the optional `ssh` extra — HTTPS-token stays
   the first transport, and an SSH URL without the extra fails with the
-  install hint, never a traceback.
+  install hint, never a traceback. The released onefile binary bundles
+  the extra (amendment 2026-08-25, M9) — a frozen binary cannot add one
+  later; PyPI and conda keep it optional.
 
 ## 7. Storage and addressing
 

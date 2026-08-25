@@ -321,7 +321,13 @@ def selftest() -> None:
 
     assert MemoryRepo().object_store is not None, "dulwich organ missing"
 
-    click.echo("selftest ok: sqlite3, libipld codec, CIDv1, urllib, dulwich")
+    # The released binary bundles the ssh extra (M9): the vendor must be
+    # constructible, which drags the real paramiko in underneath.
+    from freckles.builtins.ssh_vendor import ParamikoSSHVendor
+
+    assert callable(ParamikoSSHVendor().run_command), "paramiko organ missing"
+
+    click.echo("selftest ok: sqlite3, libipld codec, CIDv1, urllib, dulwich, paramiko")
 
 
 def _context(config_dir: Path, data_dir: Path):

@@ -22,5 +22,5 @@ def test_selftest_names_its_organs(world):
     result = world.invoke("selftest")
 
     assert result.exit_code == 0
-    for organ in ("sqlite3", "libipld", "CIDv1", "urllib", "dulwich"):
+    for organ in ("sqlite3", "libipld", "CIDv1", "urllib", "dulwich", "paramiko"):
         assert organ in result.output

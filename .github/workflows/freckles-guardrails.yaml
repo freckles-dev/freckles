@@ -40,7 +40,9 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup-uv-env
       - name: install compile group
-        run: uv sync --locked --group compile
+        # --extra ssh: the released binary bundles paramiko (M9 ratification of
+        # the M8 handoff), so the guardrail compiles the shipped mode.
+        run: uv sync --locked --extra ssh --group compile
       - name: compile onefile binary
         run: >
           uv run nuitka --onefile --assume-yes-for-downloads
