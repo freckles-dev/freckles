@@ -2,7 +2,7 @@
 
 import pytest
 
-from freckles.resolver import ResolutionError, resolve
+from freckles.resolver import ResolutionError, resolve, resolve_round
 from freckles.store import SqliteStore
 
 CHAIN = """
@@ -227,3 +227,45 @@ nodes:
 
     with pytest.raises(ResolutionError, match="nonexistent-op"):
         resolve(config_dir, store, "0.0.0-test")
+
+
+def test_deferral_cascades_through_consumers_of_consumers(store, tmp_path):
+    """Design §6: "its consumers defer transitively" — at any depth (M9).
+
+    The acceptance chain's shape: a command node consumes the product of a
+    node that itself waits on a deferred acquisition. Round 1 must defer
+    the whole downstream, not error on the second hop.
+    """
+    directory = tmp_path / "deep"
+    directory.mkdir()
+    (directory / "freckles.yaml").write_text(
+        """
+nodes:
+  plugins/greeter:
+    op: fetch-verify
+    config:
+      kind: plugin
+      url: http://127.0.0.1:9/greeter
+      sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+      manifest: {name: greeter, version: 0.1.0, produces: greeting, effect: pure}
+  greet:
+    op: greeter
+    config: {}
+  render/site:
+    op: command
+    consumes: [greeting]
+    config: {kind: file-tree, effect: pure, cmd: [render.sh]}
+  deploy/site:
+    op: command
+    consumes: [file-tree]
+    config:
+      kind: deployed-site
+      effect: effectful
+      cmd: [deploy.sh]
+      claim: {site: demo}
+"""
+    )
+
+    _, _, deferred = resolve_round(directory, store, "0.0.0-test")
+
+    assert set(deferred) == {"greet", "render/site", "deploy/site"}

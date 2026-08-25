@@ -116,13 +116,15 @@ def resolve_round(
                 raise
 
     # Transitive deferral: a consumer whose kind only a deferred node's
-    # plugin would produce waits for the same acquisition.
+    # plugin would produce waits for the same acquisition — and its own
+    # produced kind becomes pending in turn, so deferral cascades through
+    # consumers of consumers at any depth (design.md §6).
     pending_kinds = {provided_ops[op] for op in provided_ops} - {None}
     changed = True
     while changed:
         changed = False
         for node_name in list(facts):
-            _, _, _, consumed_kinds = facts[node_name]
+            _, produces, _, consumed_kinds = facts[node_name]
             use: dict[str, str] = declared[node_name].get("use", {})
             for kind in consumed_kinds:
                 try:
@@ -130,6 +132,7 @@ def resolve_round(
                 except ResolutionError:
                     if kind in pending_kinds and deferred:
                         deferred[node_name] = f"consumes deferred kind {kind!r}"
+                        pending_kinds.add(produces)
                         del facts[node_name]
                         changed = True
                         break
