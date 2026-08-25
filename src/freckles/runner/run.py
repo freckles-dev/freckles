@@ -37,6 +37,8 @@ from freckles.documents import SCHEMA, Cid, Outcome, ResolvedNode, from_wire, to
 from freckles.runner.context import RunContext
 from freckles.runner.workspace import (
     BASELINE_PATH,
+    UnrealizedClaim,
+    constructed_path,
     materialize_workspace,
     scrubbed_env,
 )
@@ -122,7 +124,10 @@ def run_node(
     """Run one resolved node through the adapter its plugin id selects."""
     workspace = materialize_workspace(ctx.workspace_root, name, inputs, ctx.store)
     ctx.envs_root.mkdir(parents=True, exist_ok=True)
-    path = list(BASELINE_PATH)
+    try:
+        path = constructed_path(name, inputs)
+    except UnrealizedClaim as exc:
+        raise RunError(str(exc)) from exc
     request = build_request(
         name, node, inputs, str(workspace), path, prior, str(ctx.envs_root)
     )

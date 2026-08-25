@@ -25,9 +25,9 @@ workspace; consumed content claims materialized as files under
 the run needs — the plugin assembles nothing, and nothing from the calling
 environment leaks in.
 
-Skeleton simplification, recorded here on purpose: the constructed PATH ends
-with /usr/bin:/bin so wrapped commands find a shell; once tool claims exist,
-PATH is built from consumed tools plus this baseline.
+The constructed PATH (M6): consumed `bootstrap` and `tool` claims contribute
+their realized binaries' directories, ahead of the /usr/bin:/bin baseline
+that keeps a shell findable for wrapped commands.
 """
 
 from __future__ import annotations
@@ -41,6 +41,38 @@ from freckles.store import get_doc
 from freckles.store.base import StoreBackend
 
 BASELINE_PATH = ["/usr/bin", "/bin"]
+
+_PATH_KINDS = ("bootstrap", "tool")  # the tool store's claim kinds (§4, §11)
+
+
+class UnrealizedClaim(Exception):
+    """A consumed bootstrap/tool claim with no realized path on this machine."""
+
+
+def constructed_path(node_name: str, inputs: dict[str, dict[str, Any]]) -> list[str]:
+    """Realized bootstrap/tool dirs (sorted by consumed kind) + the baseline.
+
+    The path annotation names the realized binary; its directory goes on
+    PATH. A consumed bootstrap/tool claim with no path annotation on this
+    machine is a hard error — realization gaps are not healed automatically
+    (design.md §6, M6).
+    """
+    dirs: list[str] = []
+    for kind in sorted(inputs):
+        entry = inputs[kind]
+        if entry["claim"].get("kind") not in _PATH_KINDS:
+            continue
+        realized = (entry.get("annotations") or {}).get("path")
+        if not realized:
+            raise UnrealizedClaim(
+                f"{node_name}: consumed {kind} claim is not realized on this "
+                "machine (no path annotation) — re-running its producing node "
+                "realizes it"
+            )
+        directory = str(Path(realized).parent)
+        if directory not in dirs:
+            dirs.append(directory)
+    return dirs + list(BASELINE_PATH)
 
 
 def scrubbed_env(path: list[str], workspace: Path) -> dict[str, str]:
