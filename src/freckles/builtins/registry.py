@@ -222,6 +222,70 @@ def _command(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     }
 
 
+def _fetch_verify(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
+    """The only true root (design.md §11): fetch a pinned URL, verify checksum.
+
+    Pure and deliberately NOT a source node: the sha256 pins the world, so
+    an unchanged derivation cannot see a changed world — hit-means-current
+    stays sound and a current heal fetches nothing.
+    """
+    import hashlib
+    import urllib.error
+    import urllib.request
+
+    config = request["node"]["config"]
+    url = config["url"]
+    expected = config["sha256"]
+    try:
+        with urllib.request.urlopen(url) as response:
+            data = response.read()
+    except (urllib.error.URLError, OSError) as error:
+        return {
+            "schema": SCHEMA,
+            "error": {"message": f"fetch failed: {url}: {error}"},
+        }
+
+    actual = hashlib.sha256(data).hexdigest()
+    if actual != expected:
+        return {
+            "schema": SCHEMA,
+            "error": {
+                "message": f"checksum mismatch for {url}: "
+                f"expected {expected}, got {actual}"
+            },
+        }
+
+    blob_cid = put_blob(ctx.store, data)
+    if config["kind"] == "plugin":
+        # The fetching node declares what the plugin is: manifest fields come
+        # from node config (M5 — plugins publish as bare executables at
+        # pinned URLs; the artifact carries no manifest of its own).
+        manifest = config["manifest"]
+        claim: dict[str, Any] = {
+            "schema": SCHEMA,
+            "kind": "plugin",
+            "payload": blob_cid,
+        }
+        for key in (
+            "name",
+            "version",
+            "produces",
+            "effect",
+            "entrypoint",
+            "verify",
+            "consumes",
+        ):
+            if key in manifest:
+                claim[key] = manifest[key]
+        claim.setdefault("entrypoint", claim.get("name"))
+        return {"schema": SCHEMA, "claim": claim}
+
+    return {
+        "schema": SCHEMA,
+        "claim": {"schema": SCHEMA, "kind": config["kind"], "content": blob_cid},
+    }
+
+
 BUILTINS: dict[str, Builtin] = {
     "import-values": Builtin(
         name="import-values",
@@ -243,5 +307,13 @@ BUILTINS: dict[str, Builtin] = {
         produces=None,
         effect=None,
         run=_command,
+    ),
+    "fetch-verify": Builtin(
+        # kind node-supplied; effect stays pure (design.md §6). Not a source:
+        # the checksum pins the world, so cache hits are sound.
+        name="fetch-verify",
+        produces=None,
+        effect="pure",
+        run=_fetch_verify,
     ),
 }

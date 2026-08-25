@@ -139,3 +139,105 @@ def test_failing_command_is_a_structured_error(ctx):
     with pytest.raises(RunError, match="exited 7") as excinfo:
         run_node("n", node, {}, ctx)
     assert "doom" in excinfo.value.detail
+
+
+# --- fetch-verify (M5): fetch a pinned URL, verify its checksum -------------
+
+FETCH_VERIFY = {"builtin": "fetch-verify", "freckles": "0.0.0-test"}
+
+
+@pytest.fixture
+def http_lab(tmp_path):
+    """A localhost server over a scratch docroot — hermetic fetch territory."""
+    import threading
+    from functools import partial
+    from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+    docroot = tmp_path / "www"
+    docroot.mkdir()
+    handler = partial(SimpleHTTPRequestHandler, directory=str(docroot))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    yield docroot, f"http://127.0.0.1:{server.server_port}"
+    server.shutdown()
+
+
+def _sha256(data: bytes) -> str:
+    import hashlib
+
+    return hashlib.sha256(data).hexdigest()
+
+
+def test_fetch_verify_mints_a_content_claim(ctx, http_lab):
+    docroot, base = http_lab
+    (docroot / "artifact.bin").write_bytes(b"verified tool bytes")
+    node = ResolvedNode(
+        plugin=FETCH_VERIFY,
+        produces="tool-archive",
+        effect="pure",
+        config={
+            "kind": "tool-archive",
+            "url": f"{base}/artifact.bin",
+            "sha256": _sha256(b"verified tool bytes"),
+        },
+        consumes={},
+    )
+
+    outcome = run_node("fetch/artifact", node, {}, ctx)
+
+    assert outcome.claim["kind"] == "tool-archive"
+    assert ctx.store.get(outcome.claim["content"]) == b"verified tool bytes"
+
+
+def test_fetch_verify_checksum_mismatch_fails_with_both_digests(ctx, http_lab):
+    docroot, base = http_lab
+    (docroot / "artifact.bin").write_bytes(b"tampered bytes")
+    expected = _sha256(b"the bytes that were pinned")
+    node = ResolvedNode(
+        plugin=FETCH_VERIFY,
+        produces="tool-archive",
+        effect="pure",
+        config={
+            "kind": "tool-archive",
+            "url": f"{base}/artifact.bin",
+            "sha256": expected,
+        },
+        consumes={},
+    )
+
+    with pytest.raises(RunError) as caught:
+        run_node("fetch/artifact", node, {}, ctx)
+    assert expected in str(caught.value)
+    assert _sha256(b"tampered bytes") in str(caught.value)
+
+
+def test_fetch_verify_mints_a_plugin_claim_from_config_manifest(ctx, http_lab):
+    docroot, base = http_lab
+    payload = b"#!/usr/bin/env python3\nprint('hi')\n"
+    (docroot / "copier-plugin").write_bytes(payload)
+    node = ResolvedNode(
+        plugin=FETCH_VERIFY,
+        produces="plugin",
+        effect="pure",
+        config={
+            "kind": "plugin",
+            "url": f"{base}/copier-plugin",
+            "sha256": _sha256(payload),
+            "manifest": {
+                "name": "copier",
+                "version": "0.2.0",
+                "produces": "file-tree",
+                "effect": "pure",
+            },
+        },
+        consumes={},
+    )
+
+    outcome = run_node("plugins/copier", node, {}, ctx)
+
+    claim = outcome.claim
+    assert claim["kind"] == "plugin"
+    assert (claim["name"], claim["version"]) == ("copier", "0.2.0")
+    assert (claim["produces"], claim["effect"]) == ("file-tree", "pure")
+    assert ctx.store.get(claim["payload"]) == payload
