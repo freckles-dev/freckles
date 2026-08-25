@@ -267,7 +267,12 @@ findings; [ADR 0003](adr/0003-cidv1-addressing.md).
   state.
 - **Refs are the only mutable state** and double as GC roots:
   `cfg/<config>/current` → resolution document,
-  `cfg/<config>/nodes/<node>` → the node's current claim CID. The
+  `cfg/<config>/nodes/<node>` → the node's current claim CID, and
+  `cfg/<config>/prov/<node>` → the node's current provenance record
+  (amendment 2026-08-25, M3: nothing else links provenance, so without
+  this ref gc would collect a current claim's provenance record and
+  derivation document after grace; superseded provenance loses the ref
+  and ages out through grace exactly like superseded claims). The
   **derivation index** (derivation hash → claim CID) is a separate,
   prunable, rebuildable local cache — deliberately not refs, so cache
   entries never pin outcomes forever.

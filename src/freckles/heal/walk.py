@@ -282,11 +282,15 @@ def _run(
     outcome = run_node(name, node, request_inputs, ctx, prior=prior_ref)
 
     claim_cid = put_doc(ctx.store, outcome.claim)
-    put_doc(
+    provenance_cid = put_doc(
         ctx.store, Provenance(derivation=derivation_cid, outcome=claim_cid).to_doc()
     )
     index.record(derivation_cid, claim_cid)
     ctx.store.set_ref(node_ref, claim_cid)
+    # The prov ref keeps a current claim's provenance (and, through it, the
+    # derivation document) out of gc's reach; superseded provenance ages out
+    # through grace exactly like superseded claims (design.md §7, M3 note).
+    ctx.store.set_ref(f"cfg/{config_name}/prov/{name}", provenance_cid)
     if outcome.annotations:
         ctx.annotations.set(claim_cid, outcome.annotations)
     return claim_cid

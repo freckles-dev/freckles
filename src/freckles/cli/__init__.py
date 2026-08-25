@@ -190,6 +190,32 @@ def show(node: str) -> None:
         click.echo(f"provenance    derivation {provenance['derivation']}")
 
 
+@main.command()
+def gc() -> None:
+    """Collect unreferenced store blocks whose grace window has passed."""
+    from freckles.defaults import GC_GRACE
+    from freckles.store import SqliteStore, extract_links
+
+    data_dir = _data_dir()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    report = SqliteStore(data_dir / "store.sqlite").gc(extract_links, GC_GRACE)
+    click.echo(f"refs: {report.roots} roots · {report.reachable} blocks reachable")
+    click.echo(
+        f"unreferenced: {report.unreferenced} "
+        f"(grace {GC_GRACE.days}d: {report.kept} kept, "
+        f"{report.collected} collected)"
+    )
+    click.echo(f"freed {_human_bytes(report.freed_bytes)}")
+
+
+def _human_bytes(count: int) -> str:
+    if count < 1024:
+        return f"{count} B"
+    if count < 1 << 20:
+        return f"{count / 1024:.1f} KiB"
+    return f"{count / (1 << 20):.1f} MiB"
+
+
 @main.group()
 def store() -> None:
     """Raw store access — the machine-facing half of inspection (R7)."""
