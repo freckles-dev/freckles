@@ -135,7 +135,7 @@ def heal(
             continue
 
         cached = index.lookup(derivation_cid)
-        if cached is not None:
+        if cached is not None and ctx.annotations.distrusted(cached) is None:
             claims[name] = cached
             report.current.append(name)
             continue
@@ -242,7 +242,7 @@ def frozen(
         _, derivation_cid = encode(derivation.to_doc())  # computed, never stored
 
         cached = index.lookup(derivation_cid)
-        if cached is not None:
+        if cached is not None and ctx.annotations.distrusted(cached) is None:
             claims[name] = cached
             report.current.append(name)
         else:
@@ -309,6 +309,9 @@ def _run(
         ctx.store, Provenance(derivation=derivation_cid, outcome=claim_cid).to_doc()
     )
     index.record(derivation_cid, claim_cid)
+    # Re-running heals distrust (design.md §8) — often by re-minting the
+    # byte-identical claim, so the mark on that CID must go now.
+    ctx.annotations.clear_distrust(claim_cid)
     ctx.store.set_ref(node_ref, claim_cid)
     # The prov ref keeps a current claim's provenance (and, through it, the
     # derivation document) out of gc's reach; superseded provenance ages out
