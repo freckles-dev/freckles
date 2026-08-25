@@ -22,21 +22,28 @@
 Sugar, never contract (design.md §6): the process protocol is DAG-JSON
 documents on stdio, and these helpers only read and write that wire. A
 plugin in any language can speak it without this module.
+
+Deliberately standard-library only (M6): a payload built by
+`freckles.sdk.build` inlines this module verbatim, so a published plugin
+runs on a bare interpreter with no freckles (or anything else) installed.
+Wire values stay in their DAG-JSON form — links are ``{"/": "bafy…"}``
+maps; a plugin never dereferences them.
 """
 
 from __future__ import annotations
 
+import json
 import sys
 from typing import IO, Any
 
-from freckles.documents import SCHEMA, from_wire, to_wire
+__all__ = ["SCHEMA", "emit_error", "emit_outcome", "read_request"]
 
-__all__ = ["emit_error", "emit_outcome", "read_request"]
+SCHEMA = 1  # the wire envelope version (conformance/wire.cddl)
 
 
 def read_request(stream: IO[str] | None = None) -> dict[str, Any]:
     """Parse the request document from stdin (or the given stream)."""
-    return from_wire((stream or sys.stdin).read())
+    return json.load(stream or sys.stdin)
 
 
 def emit_outcome(
@@ -56,7 +63,7 @@ def emit_outcome(
         document["annotations"] = annotations
     if ingest is not None:
         document["ingest"] = ingest
-    (stream or sys.stdout).write(to_wire(document))
+    json.dump(document, stream or sys.stdout, sort_keys=True)
 
 
 def emit_error(
@@ -71,4 +78,4 @@ def emit_error(
         error["detail"] = detail
     if exit_code is not None:
         error["exit_code"] = exit_code
-    (stream or sys.stdout).write(to_wire({"schema": SCHEMA, "error": error}))
+    json.dump({"schema": SCHEMA, "error": error}, stream or sys.stdout, sort_keys=True)
