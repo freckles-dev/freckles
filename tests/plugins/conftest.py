@@ -72,6 +72,62 @@ def lab(tmp_path):
     server.shutdown()
 
 
+# A stdlib stand-in for the mise binary: honest install/where semantics over
+# MISE_DATA_DIR, every invocation recorded — the hermetic suite's mise. The
+# "installed" tool is a script printing "<package> <version>", so chain tests
+# can prove a tool was invoked by bare name off the constructed PATH.
+FAKE_MISE = """\
+#!/usr/bin/env python3
+import json, os, sys
+
+data_dir = os.environ["MISE_DATA_DIR"]
+os.makedirs(data_dir, exist_ok=True)
+with open(os.path.join(data_dir, "invocations.jsonl"), "a") as log:
+    log.write(json.dumps(sys.argv[1:]) + "\\n")
+
+command, spec = sys.argv[1], sys.argv[2]
+package, _, version = spec.partition("@")
+install_dir = os.path.join(data_dir, "installs", package, version)
+if command == "install":
+    bin_dir = os.path.join(install_dir, "bin")
+    os.makedirs(bin_dir, exist_ok=True)
+    tool = os.path.join(bin_dir, package)
+    with open(tool, "w") as f:
+        f.write("#!/usr/bin/env python3\\nprint(%r)\\n" % f"{package} {version}")
+    os.chmod(tool, 0o755)
+elif command == "where":
+    if not os.path.isdir(install_dir):
+        print(f"{spec} is not installed", file=sys.stderr)
+        sys.exit(1)
+    print(install_dir)
+else:
+    print(f"fake mise: unknown command {command}", file=sys.stderr)
+    sys.exit(2)
+"""
+
+
+@pytest.fixture
+def realized_mise(ctx):
+    """A realized bootstrap claim whose annotated path is the fake mise."""
+    binary = ctx.envs_root / "mise" / "2025.8.1" / "bin" / "mise"
+    binary.parent.mkdir(parents=True)
+    binary.write_text(FAKE_MISE)
+    binary.chmod(0o755)
+    return {
+        "bootstrap": {
+            "cid": "bafyre-test",
+            "claim": {
+                "schema": SCHEMA,
+                "kind": "bootstrap",
+                "tool": "mise",
+                "version": "2025.8.1",
+                "platform": "linux-x64",
+            },
+            "annotations": {"path": str(binary)},
+        }
+    }
+
+
 @pytest.fixture
 def load_plugin_module():
     """Import a plugin script in-process (for its pure helpers only)."""
