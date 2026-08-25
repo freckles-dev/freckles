@@ -72,13 +72,19 @@ def main() -> int:
         )
         return 1
 
-    where = subprocess.run(
-        ["mise", "where", spec], capture_output=True, env=env, text=True
+    # `mise which` is the layout contract (M9 acceptance finding): pipx-backend
+    # tools land in a venv `bin/`, github-backend tools (uv) in a dist dir with
+    # `.mise-bins` symlinks — only mise itself knows where the executable is.
+    which = subprocess.run(
+        ["mise", "which", "--tool", spec, package],
+        capture_output=True,
+        env=env,
+        text=True,
     )
-    if where.returncode != 0:
-        emit_error(f"mise where {spec} failed", detail=where.stderr)
+    if which.returncode != 0:
+        emit_error(f"mise which {spec} failed", detail=which.stderr)
         return 1
-    binary = os.path.join(where.stdout.strip(), "bin", package)
+    binary = which.stdout.strip()
     if not os.path.isfile(binary):
         emit_error(f"{spec}: installed, but no executable at {binary}")
         return 1

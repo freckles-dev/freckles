@@ -9,10 +9,13 @@ import freckles._debug  # noqa: F401
 
 CONFORMANCE = Path(__file__).parent.parent / "conformance"
 
-# A stdlib stand-in for the mise binary: honest install/where semantics over
+# A stdlib stand-in for the mise binary: honest install/which semantics over
 # MISE_DATA_DIR, every invocation recorded — the hermetic suite's mise. The
 # "installed" tool is a script printing "<package> <version>", so chain tests
 # can prove a tool was invoked by bare name off the constructed PATH.
+# Layouts mirror real mise: pipx-backend tools land in a venv (`bin/<pkg>`),
+# github-backend tools (uv is the real case) in a dist dir with `.mise-bins`
+# symlinks and no `bin/` — which is why `mise which` is the layout contract.
 FAKE_MISE = """\
 #!/usr/bin/env python3
 import json, os, sys
@@ -22,13 +25,26 @@ os.makedirs(data_dir, exist_ok=True)
 with open(os.path.join(data_dir, "invocations.jsonl"), "a") as log:
     log.write(json.dumps(sys.argv[1:]) + "\\n")
 
-command, spec = sys.argv[1], sys.argv[2]
+args = sys.argv[1:]
+command = args[0]
+if command == "which":
+    spec, bin_name = args[2], args[3]  # mise which --tool <pkg>@<ver> <bin>
+else:
+    spec = args[1]
 package, _, version = spec.partition("@")
 install_dir = os.path.join(data_dir, "installs", package, version)
 if command == "install":
-    bin_dir = os.path.join(install_dir, "bin")
-    os.makedirs(bin_dir, exist_ok=True)
-    tool = os.path.join(bin_dir, package)
+    if package == "uv":
+        dist = os.path.join(install_dir, "uv-x86_64-unknown-linux-gnu")
+        os.makedirs(dist, exist_ok=True)
+        tool = os.path.join(dist, package)
+        bins = os.path.join(install_dir, ".mise-bins")
+        os.makedirs(bins, exist_ok=True)
+        os.symlink(tool, os.path.join(bins, package))
+    else:
+        bin_dir = os.path.join(install_dir, "bin")
+        os.makedirs(bin_dir, exist_ok=True)
+        tool = os.path.join(bin_dir, package)
     with open(tool, "w") as f:
         f.write("#!/usr/bin/env python3\\nprint(%r)\\n" % f"{package} {version}")
     os.chmod(tool, 0o755)
@@ -37,6 +53,17 @@ elif command == "where":
         print(f"{spec} is not installed", file=sys.stderr)
         sys.exit(1)
     print(install_dir)
+elif command == "which":
+    for candidate in (
+        os.path.join(install_dir, ".mise-bins", bin_name),
+        os.path.join(install_dir, "bin", bin_name),
+    ):
+        if os.path.exists(candidate):
+            print(candidate)
+            break
+    else:
+        print(f"{bin_name} not found for {spec}", file=sys.stderr)
+        sys.exit(1)
 else:
     print(f"fake mise: unknown command {command}", file=sys.stderr)
     sys.exit(2)
@@ -175,28 +202,20 @@ def hashberg_encode(document: dict) -> bytes:
     return dag_cbor.encode(lower(document))
 
 
-@pytest.fixture
-def sops_lab(tmp_path, monkeypatch):
-    """A hermetic sops/age lab: generated identity + a real sops-encrypt.
+def sops_encrypt_file(path: Path, values: dict[str, str], identity) -> None:
+    """Mint a genuine sops-format file encrypted to `identity`'s recipient.
 
-    Mints genuine sops-format files (per-value AES256_GCM with the key path
-    as AAD, data key age-encrypted to the lab's recipient) so decrypt tests
-    and rotations run with no sops binary and no committed key material.
-    SOPS_AGE_KEY_FILE points at the generated identity, as the runner honors.
+    The reference sops-encrypt (per-value AES256_GCM with the key path as
+    AAD, data key age-encrypted): the sops_lab fixture wraps it, and the
+    acceptance suite loads it from here — one implementation of the format
+    everywhere.
     """
     import base64
     import os as _os
-    from dataclasses import dataclass
 
     import yaml
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
     from pyrage import encrypt as age_encrypt
-    from pyrage import x25519
-
-    identity = x25519.Identity.generate()
-    key_file = tmp_path / "age-key.txt"
-    key_file.write_text(f"{identity}\n")
-    monkeypatch.setenv("SOPS_AGE_KEY_FILE", str(key_file))
 
     def _armor(data: bytes) -> str:
         body = base64.standard_b64encode(data).decode()
@@ -207,33 +226,53 @@ def sops_lab(tmp_path, monkeypatch):
             + "\n-----END AGE ENCRYPTED FILE-----\n"
         )
 
+    data_key = _os.urandom(32)
+    document: dict = {}
+    for key, plaintext in values.items():
+        iv = _os.urandom(32)  # sops uses 32-byte GCM IVs
+        encryptor = Cipher(algorithms.AES(data_key), modes.GCM(iv)).encryptor()
+        encryptor.authenticate_additional_data(f"{key}:".encode())
+        ciphertext = encryptor.update(plaintext.encode()) + encryptor.finalize()
+        document[key] = (
+            "ENC[AES256_GCM,"
+            f"data:{base64.standard_b64encode(ciphertext).decode()},"
+            f"iv:{base64.standard_b64encode(iv).decode()},"
+            f"tag:{base64.standard_b64encode(encryptor.tag).decode()},"
+            "type:str]"
+        )
+    document["sops"] = {
+        "age": [
+            {
+                "recipient": str(identity.to_public()),
+                "enc": _armor(age_encrypt(data_key, [identity.to_public()])),
+            }
+        ],
+        "lastmodified": "2026-08-24T12:00:00Z",
+        "mac": "",  # MAC verification is a named v1 cut
+        "version": "3.9.1",
+    }
+    path.write_text(yaml.safe_dump(document, sort_keys=False))
+
+
+@pytest.fixture
+def sops_lab(tmp_path, monkeypatch):
+    """A hermetic sops/age lab: generated identity + a real sops-encrypt.
+
+    Mints genuine sops-format files so decrypt tests and rotations run with
+    no sops binary and no committed key material. SOPS_AGE_KEY_FILE points
+    at the generated identity, as the runner honors.
+    """
+    from dataclasses import dataclass
+
+    from pyrage import x25519
+
+    identity = x25519.Identity.generate()
+    key_file = tmp_path / "age-key.txt"
+    key_file.write_text(f"{identity}\n")
+    monkeypatch.setenv("SOPS_AGE_KEY_FILE", str(key_file))
+
     def encrypt_file(path: Path, values: dict[str, str]) -> None:
-        data_key = _os.urandom(32)
-        document: dict = {}
-        for key, plaintext in values.items():
-            iv = _os.urandom(32)  # sops uses 32-byte GCM IVs
-            encryptor = Cipher(algorithms.AES(data_key), modes.GCM(iv)).encryptor()
-            encryptor.authenticate_additional_data(f"{key}:".encode())
-            ciphertext = encryptor.update(plaintext.encode()) + encryptor.finalize()
-            document[key] = (
-                "ENC[AES256_GCM,"
-                f"data:{base64.standard_b64encode(ciphertext).decode()},"
-                f"iv:{base64.standard_b64encode(iv).decode()},"
-                f"tag:{base64.standard_b64encode(encryptor.tag).decode()},"
-                "type:str]"
-            )
-        document["sops"] = {
-            "age": [
-                {
-                    "recipient": str(identity.to_public()),
-                    "enc": _armor(age_encrypt(data_key, [identity.to_public()])),
-                }
-            ],
-            "lastmodified": "2026-08-24T12:00:00Z",
-            "mac": "",  # MAC verification is a named v1 cut
-            "version": "3.9.1",
-        }
-        path.write_text(yaml.safe_dump(document, sort_keys=False))
+        sops_encrypt_file(path, values, identity)
 
     @dataclass
     class SopsLab:

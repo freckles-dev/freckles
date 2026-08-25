@@ -65,6 +65,25 @@ def test_reruns_mint_the_byte_identical_claim(
     assert encode_checked(first.claim) == encode_checked(second.claim)
 
 
+def test_locates_the_binary_through_mise_which(ctx, install_plugin, realized_mise):
+    """`mise which` is the layout contract, not an assumed path.
+
+    M9 acceptance finding: github-backend tools (uv, the real case) have
+    no `bin/<package>` — only mise knows where the executable landed.
+    """
+    plugin = install_plugin("mise_install.py", **MANIFEST)
+
+    outcome = run_node(
+        "tools/uv",
+        install_node(plugin, package="uv", version="0.9.28"),
+        realized_mise,
+        ctx,
+    )
+
+    install = ctx.envs_root / "mise-data" / "installs" / "uv" / "0.9.28"
+    assert outcome.annotations["path"] == str(install / ".mise-bins" / "uv")
+
+
 FAILING_MISE = """\
 #!/usr/bin/env python3
 import sys
