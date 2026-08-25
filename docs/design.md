@@ -233,6 +233,14 @@ content-addressed implementation it runs.
   plugin assembles nothing. Purity (determinism, no undeclared network) is
   *contract*, with an optional run-twice determinism check as catalog CI.
   No kernel sandbox in v1.
+- **Ingestion** (amendment 2026-08-25, M5, closing the skeleton's fog):
+  a spawned plugin lands produced content in the store by declaring an
+  `ingest` directory in its outcome document — a workspace-relative path
+  the runner, as trusted core, walks into blobs plus a tree document
+  (the command operation's `out/` convention, generalized), setting the
+  claim's `content` to the tree's CID. Plugins never touch CIDs or the
+  store; a claim already carrying `content`, or a path escaping the
+  workspace, fails the run. One directory per outcome in v1.
 - **The sets**: built-ins — `import-values`, `import-file-tree`,
   `import-sops`, `import-git`, `fetch-verify`, `command`. Standard
   plugins — `bootstrap-mise` (default), `bootstrap-pixi` (first-class

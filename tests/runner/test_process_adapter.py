@@ -175,3 +175,58 @@ def test_spawned_verify_requires_the_manifest_entrypoint(ctx, make_plugin):
 
     with pytest.raises(RunError, match="no verify entrypoint"):
         run_verify("demo/site", node, claim_cid, claim, {}, ctx)
+
+
+# --- ingestion (M5): the declared output dir becomes the claim's content ----
+
+INGEST_PLUGIN = """
+import json, os, sys
+json.load(sys.stdin)
+os.makedirs("out/sub", exist_ok=True)
+with open("out/site.yaml", "w") as f:
+    f.write("rendered: true\\n")
+with open("out/sub/extra.txt", "w") as f:
+    f.write("extra")
+json.dump({"schema": 1, "claim": {"schema": 1, "kind": "file-tree"},
+           "ingest": "out"}, sys.stdout)
+"""
+
+
+def test_ingest_dir_becomes_the_claims_content_tree(ctx, make_plugin):
+    from freckles.store import get_doc
+
+    plugin = make_plugin("renderer", INGEST_PLUGIN, produces="file-tree")
+
+    outcome = run_node("demo/render", resolved(plugin, produces="file-tree"), {}, ctx)
+
+    tree = get_doc(ctx.store, outcome.claim["content"])
+    assert set(tree["entries"]) == {"site.yaml", "sub/extra.txt"}  # /-separated
+    blob = ctx.store.get(tree["entries"]["site.yaml"]["content"])
+    assert blob == b"rendered: true\n"
+
+
+ESCAPING_INGEST_PLUGIN = """
+import json, sys
+json.dump({"schema": 1, "claim": {"schema": 1, "kind": "file-tree"},
+           "ingest": "../elsewhere"}, sys.stdout)
+"""
+
+CONTENT_CLASH_PLUGIN = """
+import json, os, sys
+os.makedirs("out", exist_ok=True)
+json.dump({"schema": 1,
+           "claim": {"schema": 1, "kind": "file-tree", "content": "sneaky"},
+           "ingest": "out"}, sys.stdout)
+"""
+
+
+def test_ingest_escaping_the_workspace_is_a_run_error(ctx, make_plugin):
+    plugin = make_plugin("escaper", ESCAPING_INGEST_PLUGIN, produces="file-tree")
+    with pytest.raises(RunError, match="escapes the workspace"):
+        run_node("demo/escape", resolved(plugin, produces="file-tree"), {}, ctx)
+
+
+def test_ingest_with_preexisting_content_is_a_run_error(ctx, make_plugin):
+    plugin = make_plugin("clasher", CONTENT_CLASH_PLUGIN, produces="file-tree")
+    with pytest.raises(RunError, match="already carries content"):
+        run_node("demo/clash", resolved(plugin, produces="file-tree"), {}, ctx)

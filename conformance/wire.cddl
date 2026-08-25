@@ -56,6 +56,11 @@ outcome = {
   claim: {*tstr => value},   ; must validate as a store `claim` whose kind
                              ; equals the node's resolved produced kind
   ? annotations: {*tstr => value}
+  ? ingest: tstr             ; ingestion (M5): a workspace-relative directory
+                             ; the runner walks into blobs + a tree document,
+                             ; setting claim.content to the tree's CID. The
+                             ; claim must not already carry `content`; a path
+                             ; escaping the workspace is a run failure.
 }
 ; An annotation entry carrying secret material marks itself:
 ;   { value: …, secret: true }  — never printed, index owner-only (§9)

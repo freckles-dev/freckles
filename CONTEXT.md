@@ -95,6 +95,12 @@ Access material minted by an effectful operation (a kubeconfig, a generated
 password). Never identity: lives in secret-marked annotations, private to
 the machine; rotates without changing any claim.
 
+**Ingestion**:
+The runner-side act of landing a plugin's produced content in the store:
+the outcome document declares a workspace-relative directory, and the
+runner — as trusted core — walks it into blobs plus a tree document,
+setting the claim's content link. Plugins never touch CIDs or the store.
+
 **Realization**:
 Making a trusted claim usable on the local machine, producing its
 annotations. Pure claims realize by local re-derivation; effectful claims

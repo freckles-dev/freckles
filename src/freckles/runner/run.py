@@ -136,6 +136,9 @@ def run_node(
             error.get("exit_code", 1),
         )
 
+    if "ingest" in outcome_doc:
+        _ingest(outcome_doc, workspace, ctx)
+
     claim = outcome_doc.get("claim")
     if not isinstance(claim, dict) or claim.get("kind") != node.produces:
         raise RunError(
@@ -178,6 +181,36 @@ def run_verify(
     if "error" in outcome_doc:
         return outcome_doc["error"].get("message", "contradicted")
     return None
+
+
+def _ingest(outcome_doc: dict[str, Any], workspace: Path, ctx: RunContext) -> None:
+    """Ingestion (design.md §6, M5): the declared dir becomes claim.content.
+
+    The runner is the trusted core here — plugins never touch CIDs or the
+    store. The command operation's out/ convention, generalized.
+    """
+    from freckles.documents import tree_doc
+    from freckles.store import put_blob, put_doc
+
+    claim = outcome_doc.get("claim")
+    if isinstance(claim, dict) and "content" in claim:
+        raise RunError("outcome declares ingest but the claim already carries content")
+    declared = outcome_doc["ingest"]
+    target = (workspace / declared).resolve()
+    if not target.is_relative_to(workspace.resolve()):
+        raise RunError(f"ingest dir {declared!r} escapes the workspace")
+    if not target.is_dir():
+        raise RunError(f"ingest dir {declared!r} does not exist in the workspace")
+
+    entries: dict[str, Any] = {}
+    for file in sorted(p for p in target.rglob("*") if p.is_file()):
+        # Tree keys are identity: always /-separated (same tree, same CID,
+        # every platform).
+        entries[file.relative_to(target).as_posix()] = {
+            "content": put_blob(ctx.store, file.read_bytes())
+        }
+    if isinstance(claim, dict):
+        claim["content"] = put_doc(ctx.store, tree_doc(entries))
 
 
 def _in_process_adapter(
