@@ -48,6 +48,10 @@ class StateDb:
                 "CREATE TABLE IF NOT EXISTS annotations "
                 "(claim_cid TEXT PRIMARY KEY, data TEXT)"
             )
+            self._conn.execute(
+                "CREATE TABLE IF NOT EXISTS distrust "
+                "(claim_cid TEXT PRIMARY KEY, reason TEXT, marked_at TEXT)"
+            )
 
     def close(self) -> None:
         self._conn.close()
@@ -111,4 +115,31 @@ class AnnotationsIndex:
                 "INSERT INTO annotations (claim_cid, data) VALUES (?, ?) "
                 "ON CONFLICT(claim_cid) DO UPDATE SET data = excluded.data",
                 (str(claim), json.dumps(annotations)),
+            )
+
+    # Distrust marks (design.md §8): trust state beside the annotations, never
+    # inside them — request documents and prior: must not carry it.
+
+    def distrust(self, claim: Cid, reason: str) -> None:
+        from datetime import UTC, datetime
+
+        with self._conn:
+            self._conn.execute(
+                "INSERT INTO distrust (claim_cid, reason, marked_at) "
+                "VALUES (?, ?, ?) "
+                "ON CONFLICT(claim_cid) DO UPDATE SET reason = excluded.reason, "
+                "marked_at = excluded.marked_at",
+                (str(claim), reason, datetime.now(UTC).isoformat()),
+            )
+
+    def distrusted(self, claim: Cid) -> str | None:
+        row = self._conn.execute(
+            "SELECT reason FROM distrust WHERE claim_cid = ?", (str(claim),)
+        ).fetchone()
+        return row[0] if row else None
+
+    def clear_distrust(self, claim: Cid) -> None:
+        with self._conn:
+            self._conn.execute(
+                "DELETE FROM distrust WHERE claim_cid = ?", (str(claim),)
             )

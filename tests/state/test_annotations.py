@@ -28,3 +28,28 @@ def test_redacted_view_hides_secret_marked_values(tmp_path):
 
     # the full view is untouched — effectful runs still receive the material
     assert index.get(claim)["admin_token"]["value"] == "s3ns1tive-material"
+
+
+def test_distrust_marks_are_set_read_and_cleared(tmp_path):
+    index = AnnotationsIndex(StateDb(tmp_path / "state.sqlite"))
+    claim = cid_for_blob(b"deployed-site-claim")
+
+    assert index.distrusted(claim) is None  # trusted until contradicted
+
+    index.distrust(claim, "health endpoint unreachable")
+    assert index.distrusted(claim) == "health endpoint unreachable"
+
+    index.clear_distrust(claim)
+    assert index.distrusted(claim) is None
+
+
+def test_distrust_marks_stay_out_of_the_annotations(tmp_path):
+    """Trust state never leaks into what effectful runs and prior: receive."""
+    index = AnnotationsIndex(StateDb(tmp_path / "state.sqlite"))
+    claim = cid_for_blob(b"deployed-site-claim")
+    index.set(claim, {"deployed_at": "2026-08-25T12:00:00Z"})
+
+    index.distrust(claim, "drifted")
+
+    assert index.get(claim) == {"deployed_at": "2026-08-25T12:00:00Z"}
+    assert index.redacted(claim) == {"deployed_at": "2026-08-25T12:00:00Z"}
