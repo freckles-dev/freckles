@@ -17,10 +17,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-"""Filesystem locations for data bundled with the freckles package."""
+"""Package data locations and built-in defaults."""
 
 import sys
+from datetime import timedelta
 from pathlib import Path
+
+GC_GRACE = timedelta(days=14)  # design.md §7: gc(extract_links, grace≈14d)
 
 if hasattr(sys, "_MEIPASS"):
     # Running from a PyInstaller bundle: package data is unpacked under the

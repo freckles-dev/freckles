@@ -24,14 +24,16 @@ backends stay codec-ignorant.
 """
 
 from freckles.documents import Cid, cid_for_blob, decode, encode
-from freckles.store.base import StoreBackend
+from freckles.store.base import GcReport, StoreBackend
 from freckles.store.folder import FolderStore
 from freckles.store.sqlite import SqliteStore
 
 __all__ = [
     "FolderStore",
+    "GcReport",
     "SqliteStore",
     "StoreBackend",
+    "extract_links",
     "get_doc",
     "provenance_for",
     "put_blob",
@@ -74,3 +76,24 @@ def put_blob(backend: StoreBackend, data: bytes) -> Cid:
     cid = cid_for_blob(data)
     backend.put(cid, data)
     return cid
+
+
+def extract_links(cid: Cid, data: bytes) -> list[Cid]:
+    """Every CID this block links to — gc's traversal knowledge.
+
+    Backends stay codec-ignorant: they call this back per block. Raw blobs
+    are leaves; document links surface as `Cid` values after decoding.
+    """
+    if cid.codec != _DAG_CBOR:
+        return []
+    return _links_in(decode(data))
+
+
+def _links_in(value) -> list[Cid]:
+    if isinstance(value, Cid):
+        return [value]
+    if isinstance(value, dict):
+        return [link for child in value.values() for link in _links_in(child)]
+    if isinstance(value, list):
+        return [link for child in value for link in _links_in(child)]
+    return []

@@ -22,9 +22,11 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from freckles.documents import Cid
+from freckles.store.base import ExtractLinks, GcReport, compute_reachable
 
 
 class SqliteStore:
@@ -83,6 +85,24 @@ class SqliteStore:
     def refs(self) -> dict[str, Cid]:
         rows = self._conn.execute("SELECT name, cid FROM refs ORDER BY name").fetchall()
         return {name: Cid.parse(cid) for name, cid in rows}
+
+    def gc(
+        self,
+        extract_links: ExtractLinks,
+        grace: timedelta,
+        now: datetime | None = None,
+    ) -> GcReport:
+        roots = self.refs()
+        reachable = compute_reachable(list(roots.values()), self.get, extract_links)
+        unreferenced = [cid for cid in self.cids() if cid not in reachable]
+        return GcReport(
+            roots=len(roots),
+            reachable=len(self.cids()) - len(unreferenced),
+            unreferenced=len(unreferenced),
+            kept=len(unreferenced),
+            collected=0,
+            freed_bytes=0,
+        )
 
     def close(self) -> None:
         self._conn.close()

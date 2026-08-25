@@ -1,13 +1,22 @@
 """The backend contract suite: one parametrized suite every store backend passes.
 
 Both v1 backends run it: sqlite (default) and folder (inspection).
-gc contract tests join with the gc milestone.
+Covers block/ref semantics, reopen persistence, and gc (refs as the only
+roots, extract_links traversal, two-phase unreferenced-since grace).
 """
 
 import pytest
 
+from freckles.defaults import GC_GRACE
 from freckles.documents import cid_for_blob
-from freckles.store import FolderStore, SqliteStore, get_doc, put_blob, put_doc
+from freckles.store import (
+    FolderStore,
+    SqliteStore,
+    extract_links,
+    get_doc,
+    put_blob,
+    put_doc,
+)
 
 
 @pytest.fixture(params=["sqlite", "folder"])
@@ -73,6 +82,22 @@ def test_doc_helpers_round_trip(backend):
     doc = {"schema": 1, "kind": "values", "key": "apps"}
     cid = put_doc(backend, doc)
     assert get_doc(backend, cid) == doc
+
+
+def test_gc_first_pass_keeps_unreachable_within_grace(backend):
+    blob = put_blob(backend, b"payload")
+    doc = put_doc(backend, {"schema": 1, "kind": "file-tree", "content": blob})
+    backend.set_ref("cfg/demo/nodes/tree", doc)
+    orphan = put_blob(backend, b"orphan bytes")
+
+    report = backend.gc(extract_links, GC_GRACE)
+
+    assert report.roots == 1
+    assert report.reachable == 2  # the rooted doc and the blob it links
+    assert report.unreferenced == 1
+    assert (report.kept, report.collected) == (1, 0)
+    assert report.freed_bytes == 0
+    assert backend.has(orphan)  # grace holds it
 
 
 def test_persistence_across_reopen(backend_factory):
