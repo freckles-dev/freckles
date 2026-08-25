@@ -48,6 +48,44 @@ def fake_mise_source() -> str:
     return FAKE_MISE
 
 
+# The pixi stand-in: models `pixi install --manifest-path` over a per-tool
+# workspace — reads the exact pin from pixi.toml, realizes the tool under
+# .pixi/envs/default/bin, writes the pixi.lock beside the manifest (the
+# sha256 lock real pixi produces), and records every invocation.
+FAKE_PIXI = """\
+#!/usr/bin/env python3
+import json, os, re, sys
+
+args = sys.argv[1:]
+if args[0] != "install":
+    print(f"fake pixi: unknown command {args[0]}", file=sys.stderr)
+    sys.exit(2)
+manifest_dir = args[args.index("--manifest-path") + 1]
+with open(os.path.join(manifest_dir, "invocations.jsonl"), "a") as log:
+    log.write(json.dumps(args) + "\\n")
+with open(os.path.join(manifest_dir, "pixi.toml")) as f:
+    manifest = f.read()
+match = re.search(r'^(\\S+) = "==([^"]+)"$', manifest, re.M)
+if not match:
+    print("fake pixi: no exact pin in pixi.toml", file=sys.stderr)
+    sys.exit(1)
+package, version = match.group(1), match.group(2)
+bin_dir = os.path.join(manifest_dir, ".pixi", "envs", "default", "bin")
+os.makedirs(bin_dir, exist_ok=True)
+tool = os.path.join(bin_dir, package)
+with open(tool, "w") as f:
+    f.write("#!/usr/bin/env python3\\nprint(%r)\\n" % f"{package} {version}")
+os.chmod(tool, 0o755)
+with open(os.path.join(manifest_dir, "pixi.lock"), "w") as f:
+    f.write("version: 6\\n# sha256-locked by fake pixi\\n")
+"""
+
+
+@pytest.fixture
+def fake_pixi_source() -> str:
+    return FAKE_PIXI
+
+
 def hashberg_encode(document: dict) -> bytes:
     """Encode a value-model document with the hashberg pair (dag-cbor/multiformats).
 

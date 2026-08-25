@@ -95,6 +95,28 @@ def realized_mise(ctx, fake_mise_source):
 
 
 @pytest.fixture
+def realized_pixi(ctx, fake_pixi_source):
+    """A realized bootstrap claim whose annotated path is the fake pixi."""
+    binary = ctx.envs_root / "pixi" / "0.77.0" / "bin" / "pixi"
+    binary.parent.mkdir(parents=True)
+    binary.write_text(fake_pixi_source)
+    binary.chmod(0o755)
+    return {
+        "bootstrap": {
+            "cid": "bafyre-test",
+            "claim": {
+                "schema": SCHEMA,
+                "kind": "bootstrap",
+                "tool": "pixi",
+                "version": "0.77.0",
+                "platform": "linux-x64",
+            },
+            "annotations": {"path": str(binary)},
+        }
+    }
+
+
+@pytest.fixture
 def load_plugin_module():
     """Import a plugin script in-process (for its pure helpers only)."""
     import importlib.util
