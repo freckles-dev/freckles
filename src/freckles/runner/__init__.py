@@ -25,6 +25,6 @@ plaintext boundary (ADR 0005). Execution seam with two adapters: in-process
 """
 
 from freckles.runner.context import RunContext
-from freckles.runner.run import RunError, build_request, run_node
+from freckles.runner.run import RunError, build_request, run_node, run_verify
 
-__all__ = ["RunContext", "RunError", "build_request", "run_node"]
+__all__ = ["RunContext", "RunError", "build_request", "run_node", "run_verify"]

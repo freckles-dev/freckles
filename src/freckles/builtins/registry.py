@@ -145,6 +145,29 @@ def _command(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
         (workspace / "prior.json").write_text(to_wire(request["prior"]))
 
     env = scrubbed_env(request["workspace"]["path"], workspace)
+
+    if "verify" in request:
+        # Verify mode (design.md §8, M4): the verify command reads the claim
+        # document from stdin; exit 0 confirms, nonzero contradicts with the
+        # stderr tail as the message. Claim only in v1 — no annotations, no
+        # secrets, nothing on disk.
+        completed = subprocess.run(
+            config["verify"],
+            input=to_wire(request["verify"]["claim"]).encode(),
+            capture_output=True,
+            cwd=workspace,
+            env=env,
+        )
+        if completed.returncode == 0:
+            return {"schema": SCHEMA, "verify": "confirmed"}
+        message = completed.stderr.decode(errors="replace").strip() or (
+            f"verify exited {completed.returncode}"
+        )
+        return {
+            "schema": SCHEMA,
+            "error": {"message": message, "exit_code": completed.returncode},
+        }
+
     for env_name, kind in config.get("secret-env", {}).items():
         # ADR 0005: the runner injected `resolved:` in memory; hand it to the
         # wrapped process through its environment only — never argv, never disk.

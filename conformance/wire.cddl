@@ -31,6 +31,9 @@ request = {
     path: [*tstr]            ; constructed from consumed tool claims
   },
   ? prior: outcome-ref       ; effectful re-runs only (design.md §8)
+  ? verify: outcome-ref      ; verify mode (M4): the outcome under test;
+                             ; inputs empty, prior absent. Exit 0 =
+                             ; CONFIRMED, nonzero = CONTRADICTED.
 }
 
 input = {

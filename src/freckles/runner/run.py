@@ -145,6 +145,44 @@ def run_node(
     return Outcome(claim=claim, annotations=outcome_doc.get("annotations", {}))
 
 
+def run_verify(
+    name: str,
+    node: ResolvedNode,
+    claim_cid: Cid,
+    claim: dict[str, Any],
+    annotations: dict[str, Any],
+    ctx: RunContext,
+) -> str | None:
+    """Run the node's verify entrypoint against its current outcome (design.md §8).
+
+    None means CONFIRMED; a string is the CONTRADICTED message. RunError is
+    reserved for what keeps verification from happening at all — no verify
+    entrypoint, an unresolvable node.
+    """
+    if isinstance(node.plugin, dict) and "verify" not in node.config:
+        raise RunError(f"{name}: no verify entrypoint")
+
+    workspace = materialize_workspace(ctx.workspace_root, name, {}, ctx.store)
+    request = build_request(name, node, {}, str(workspace), list(BASELINE_PATH), None)
+    verify_ref: dict[str, Any] = {"cid": claim_cid, "claim": claim}
+    if annotations:
+        verify_ref["annotations"] = annotations
+    request["verify"] = verify_ref
+
+    if isinstance(node.plugin, Cid):
+        try:
+            outcome_doc = _process_adapter(node.plugin, request, ctx)
+        except RunError as error:
+            # The verify protocol: a nonzero exit IS the contradiction.
+            return str(error)
+    else:
+        outcome_doc = _in_process_adapter(node.plugin["builtin"], request, ctx)
+
+    if "error" in outcome_doc:
+        return outcome_doc["error"].get("message", "contradicted")
+    return None
+
+
 def _in_process_adapter(
     builtin: str, request: dict[str, Any], ctx: RunContext
 ) -> dict[str, Any]:

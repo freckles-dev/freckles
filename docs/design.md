@@ -336,7 +336,13 @@ Decided in [Effects and day-2](../.scratch/design/issues/07-effects-and-day-2.md
   explicit, never polled. Contradiction marks the claim **distrusted** in
   the local annotations index (claims stay immutable), which makes the
   node stale through the one existing staleness mechanism; re-running
-  heals.
+  heals. Verify contract (amendment 2026-08-25, M4): the same entrypoint
+  receives the request with a `verify` block (the outcome under test;
+  inputs empty, no `prior:`) — exit 0 is CONFIRMED, nonzero is
+  CONTRADICTED with the message from the structured error or stderr;
+  the `command` operation takes a node-config `verify` command handed
+  the claim document on stdin (claim only in v1 — no annotations, no
+  secrets). Only re-running heals a mark; a later CONFIRMED does not.
 - **Teardown, v1**: removing a node orphans its effectful claim; freckles
   *reports* orphans, cleanup belongs to the operator and the underlying
   tools. An optional `destroy` entrypoint is the named future extension.

@@ -207,6 +207,42 @@ def show(node: str) -> None:
 
 
 @main.command()
+@click.argument("node")
+def verify(node: str) -> None:
+    """Check a node's claim against the world — explicit, never polled."""
+    from freckles.runner import RunError, run_verify
+    from freckles.store import get_doc
+
+    config_dir = Path.cwd()
+    ctx, _ = _context(config_dir, _data_dir())
+    resolution, _ = _resolve_or_die(config_dir, ctx.store)
+    resolved = resolution.nodes.get(node)
+    if resolved is None:
+        click.echo(f"error: unknown node {node!r}", err=True)
+        raise SystemExit(1)
+    claim_cid = ctx.store.get_ref(f"cfg/{config_dir.name}/nodes/{node}")
+    if claim_cid is None:
+        click.echo(f"error: no claim for node {node!r} — not healed yet?", err=True)
+        raise SystemExit(1)
+
+    claim = get_doc(ctx.store, claim_cid)
+    try:
+        contradiction = run_verify(
+            node, resolved, claim_cid, claim, ctx.annotations.get(claim_cid), ctx
+        )
+    except RunError as error:
+        raise _run_failed(error) from error
+
+    if contradiction is None:
+        click.echo(f"  {node}  verify → CONFIRMED")
+        return
+    ctx.annotations.distrust(claim_cid, contradiction)
+    click.echo(f"  {node}  verify → CONTRADICTED ({contradiction})")
+    click.echo(f"  claim {_abbrev(claim_cid)} marked distrusted — node stale.")
+    raise SystemExit(2)
+
+
+@main.command()
 def gc() -> None:
     """Collect unreferenced store blocks whose grace window has passed."""
     from freckles.defaults import GC_GRACE
