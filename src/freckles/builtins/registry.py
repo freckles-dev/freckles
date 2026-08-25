@@ -28,6 +28,7 @@ it). Shipped so far: `import-values`, `command` (skeleton), `import-sops`
 
 from __future__ import annotations
 
+import stat
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -81,6 +82,44 @@ def _import_values(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
             "kind": "values",
             "key": config["key"],
             "content": cid,
+        },
+    }
+
+
+def _import_file_tree(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
+    """Source node: a working-copy directory becomes a file-tree claim.
+
+    Tree keys are identity — always /-separated — and exec bits travel in
+    the entries, so materialization reproduces a runnable tree anywhere.
+    """
+    config = request["node"]["config"]
+    declared = config["dir"]
+    source = (ctx.config_dir / declared).resolve()
+    if not source.is_relative_to(ctx.config_dir.resolve()):
+        return {
+            "schema": SCHEMA,
+            "error": {
+                "message": f"dir {declared!r} escapes the configuration directory"
+            },
+        }
+    if not source.is_dir():
+        return {
+            "schema": SCHEMA,
+            "error": {"message": f"dir {declared!r} not found in the working copy"},
+        }
+
+    entries: dict[str, Any] = {}
+    for file in sorted(p for p in source.rglob("*") if p.is_file()):
+        entry: dict[str, Any] = {"content": put_blob(ctx.store, file.read_bytes())}
+        if file.stat().st_mode & stat.S_IXUSR:
+            entry["exec"] = True
+        entries[file.relative_to(source).as_posix()] = entry
+    return {
+        "schema": SCHEMA,
+        "claim": {
+            "schema": SCHEMA,
+            "kind": "file-tree",
+            "content": put_doc(ctx.store, tree_doc(entries)),
         },
     }
 
@@ -293,6 +332,13 @@ BUILTINS: dict[str, Builtin] = {
         effect="pure",
         source=True,
         run=_import_values,
+    ),
+    "import-file-tree": Builtin(
+        name="import-file-tree",
+        produces="file-tree",
+        effect="pure",
+        source=True,
+        run=_import_file_tree,
     ),
     "import-sops": Builtin(
         name="import-sops",
