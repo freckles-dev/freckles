@@ -341,11 +341,14 @@ Decided in [Effects and day-2](../.scratch/design/issues/07-effects-and-day-2.md
   *reports* orphans, cleanup belongs to the operator and the underlying
   tools. An optional `destroy` entrypoint is the named future extension.
 - **The audit log** succeeds the journal: local, append-only, records
-  every run with derivation and claim CIDs, logs, exit codes, durations,
+  every run with derivation and claim CIDs, exit codes, durations,
   failures, and resolved secret *names* — so "what was deployed when"
   stays answerable even after blocks are GC'd. Never consumed downstream.
-  No history refs in v1; bounded history refs are a named cheap later
-  option.
+  Field list finalized by M3 (amendment 2026-08-25): schema, ts, config,
+  node, op, derivation, claim (null on failure), ok, exit_code,
+  duration_ms, secrets, error — run *logs* are trimmed from the record
+  (v1 cut; stdout/stderr live and die with the run). No history refs in
+  v1; bounded history refs are a named cheap later option.
 - **Machine-boundedness, stated honestly**: consuming any claim requires
   only the claim, but a node's annotations are private to the machine that
   runs it — so re-running an effectful node is bound to the machine

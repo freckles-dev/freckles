@@ -9,6 +9,7 @@ the secret never flowing. A negative control proves the guard bites.
 """
 
 import hashlib
+import json
 
 import pytest
 from click.testing import CliRunner
@@ -90,6 +91,15 @@ def test_the_plaintext_sentinel_never_persists(canary_world):
     assert scan(data_dir, sentinels) > 2  # store, state, workspaces all seen
     scan(config_dir, sentinels)  # the working copy holds ciphertext only
     assert SENTINEL not in result.output + rerun.output
+
+    # M3: the audit log sits inside the scanned tree and names the resolved
+    # secret — its own vacuity guard: names travel, values provably don't.
+    audit_lines = [
+        json.loads(line) for line in (data_dir / "audit.jsonl").read_text().splitlines()
+    ]
+    checkpoints = [r for r in audit_lines if r["node"] == "deploy/site"]
+    assert len(checkpoints) == 2  # day 1 and the rotation re-run
+    assert all(r["secrets"] == ["deploy-token"] for r in checkpoints)
 
 
 def test_the_vacuity_guard_bites(canary_world):
