@@ -24,6 +24,8 @@ claim = {
   *tstr => value             ; payload — per-kind convention, e.g.
 }                            ;   tool: {tool, version, platform}
                              ;   file-tree: {content: link}   ; -> tree
+                             ;     (+ commit when import-git minted it — the
+                             ;      resolved-commit pin, design.md §12, M8)
                              ;   values: {key, content: link}
 
 ; ---- secret claim shapes (design.md §9) ------------------------------------

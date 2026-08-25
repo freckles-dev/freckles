@@ -124,6 +124,124 @@ def _import_file_tree(request: dict[str, Any], ctx: RunContext) -> dict[str, Any
     }
 
 
+def _import_git(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
+    """Source node: a repository at a resolved commit becomes a file-tree claim.
+
+    The fetch is embedded — dulwich, never a host git (design.md §6: a host
+    dependency would defeat the bootstrap tier). The claim pins the resolved
+    commit beside the tree (design.md §12); the URL stays out of identity.
+    v1 simplifications, on purpose: regular files only (submodules and
+    symlinks are skipped), and a pinned commit that is not an advertised tip
+    is found by fetching the advertised tips (pack minimality is post-v1).
+    """
+    from typing import cast
+
+    from dulwich.client import get_transport_and_path
+    from dulwich.objects import Blob, Commit, ObjectID, Tag, Tree
+    from dulwich.repo import MemoryRepo
+
+    config = request["node"]["config"]
+    url = config["url"]
+    if "ref" in config and "commit" in config:
+        return {
+            "schema": SCHEMA,
+            "error": {"message": "config pins both ref and commit — choose one"},
+        }
+
+    target = MemoryRepo()
+    try:
+        client, path = get_transport_and_path(url, **_git_auth(config))
+        refs = {
+            bytes(name): bytes(sha)
+            for name, sha in client.get_refs(cast(bytes, path)).refs.items()
+            if sha is not None
+        }
+    # Any transport failure must become a structured error document, never a
+    # traceback — and dulwich raises a transport-specific zoo.
+    except Exception as error:  # noqa: BLE001
+        return {
+            "schema": SCHEMA,
+            "error": {"message": f"fetch failed: {url}: {error}"},
+        }
+
+    if pinned := config.get("commit"):
+        wanted = ObjectID(pinned.encode())
+    else:
+        ref = config.get("ref")
+        candidates = (
+            [f"refs/heads/{ref}".encode(), f"refs/tags/{ref}".encode()]
+            if ref
+            else [b"HEAD"]
+        )
+        resolved = next((refs[c] for c in candidates if c in refs), None)
+        if resolved is None:
+            return {
+                "schema": SCHEMA,
+                "error": {"message": f"ref {ref!r} not found in {url}"},
+            }
+        wanted = ObjectID(resolved)
+
+    tips = [ObjectID(sha) for sha in sorted(set(refs.values()))]
+    wants = [wanted] if wanted in tips else tips
+    try:
+        client.fetch(path, target, determine_wants=cast("Any", lambda *_a, **_k: wants))
+    except Exception as error:  # noqa: BLE001 — same boundary as above
+        return {
+            "schema": SCHEMA,
+            "error": {"message": f"fetch failed: {url}: {error}"},
+        }
+    if wanted not in target.object_store:
+        return {
+            "schema": SCHEMA,
+            "error": {"message": f"commit {pinned} not found in {url}"},
+        }
+
+    peeled = target[wanted]
+    while isinstance(peeled, Tag):  # annotated tags peel to commits
+        peeled = target[peeled.object[1]]
+    if not isinstance(peeled, Commit):
+        return {
+            "schema": SCHEMA,
+            "error": {"message": f"{wanted.decode()} is not a commit"},
+        }
+    commit_obj = peeled
+
+    entries: dict[str, Any] = {}
+
+    def walk(tree_id: ObjectID, prefix: str) -> None:
+        tree = target[tree_id]
+        if not isinstance(tree, Tree):
+            return
+        for name, mode, sha in tree.items():
+            item = f"{prefix}{name.decode()}"
+            if stat.S_ISDIR(mode):
+                walk(ObjectID(sha), f"{item}/")
+            elif stat.S_ISREG(mode):
+                blob = target[ObjectID(sha)]
+                if not isinstance(blob, Blob):
+                    continue
+                entry: dict[str, Any] = {"content": put_blob(ctx.store, blob.data)}
+                if mode & 0o111:
+                    entry["exec"] = True
+                entries[item] = entry
+
+    walk(ObjectID(commit_obj.tree), "")
+    return {
+        "schema": SCHEMA,
+        "claim": {
+            "schema": SCHEMA,
+            "kind": "file-tree",
+            "content": put_doc(ctx.store, tree_doc(entries)),
+            "commit": commit_obj.id.decode(),
+        },
+    }
+
+
+def _git_auth(config: dict[str, Any]) -> dict[str, Any]:
+    """Transport credentials — never part of any hashed document (M8)."""
+    return {}
+
+
 def _import_sops(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     """Source node: one key's sops ciphertext becomes a secret-value claim.
 
@@ -339,6 +457,13 @@ BUILTINS: dict[str, Builtin] = {
         effect="pure",
         source=True,
         run=_import_file_tree,
+    ),
+    "import-git": Builtin(
+        name="import-git",
+        produces="file-tree",
+        effect="pure",
+        source=True,
+        run=_import_git,
     ),
     "import-sops": Builtin(
         name="import-sops",

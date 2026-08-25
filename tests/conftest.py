@@ -86,6 +86,72 @@ def fake_pixi_source() -> str:
     return FAKE_PIXI
 
 
+@pytest.fixture
+def git_lab(tmp_path):
+    """A hermetic git lab: real repositories minted with dulwich, no host git.
+
+    `repo(files, exec_paths=…)` creates a repository with one commit on
+    `main` and returns a handle whose `commit(files, …)` advances the
+    branch; `head` is the current tip as a hex string — the independent
+    truth import-git claims are checked against.
+    """
+    import shutil
+    from dataclasses import dataclass
+    from dataclasses import field as dc_field
+
+    from dulwich import porcelain
+    from dulwich.refs import Ref
+
+    root = tmp_path / "git-lab"
+    root.mkdir()
+
+    @dataclass
+    class LabRepo:
+        path: Path
+        heads: list[str] = dc_field(default_factory=list)
+
+        @property
+        def url(self) -> str:
+            return str(self.path)
+
+        @property
+        def head(self) -> str:
+            return self.heads[-1]
+
+        def commit(self, files: dict[str, str], exec_paths: tuple = ()) -> str:
+            for name, text in files.items():
+                target = self.path / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(text)
+                if name in exec_paths:
+                    target.chmod(0o755)
+            porcelain.add(str(self.path), [str(self.path / n) for n in files])
+            sha = porcelain.commit(
+                str(self.path),
+                message=b"lab commit",
+                author=b"Lab <lab@test>",
+                committer=b"Lab <lab@test>",
+            )
+            self.heads.append(sha.decode())
+            return self.heads[-1]
+
+    made = 0
+
+    def repo(files: dict[str, str], exec_paths: tuple = ()) -> LabRepo:
+        nonlocal made
+        made += 1
+        path = root / f"repo{made}"
+        porcelain.init(str(path))
+        with porcelain.open_repo_closing(str(path)) as r:
+            r.refs.set_symbolic_ref(Ref(b"HEAD"), Ref(b"refs/heads/main"))
+        lab_repo = LabRepo(path=path)
+        lab_repo.commit(files, exec_paths)
+        return lab_repo
+
+    yield repo
+    shutil.rmtree(root, ignore_errors=True)
+
+
 def hashberg_encode(document: dict) -> bytes:
     """Encode a value-model document with the hashberg pair (dag-cbor/multiformats).
 
