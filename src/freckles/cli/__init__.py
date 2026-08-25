@@ -317,7 +317,11 @@ def selftest() -> None:
     assert str(cid).startswith("bafyrei"), "CID form wrong"
     assert callable(urllib.request.urlopen), "urllib organ missing"  # fetch-verify
 
-    click.echo("selftest ok: sqlite3, libipld codec, CIDv1, urllib")
+    from dulwich.repo import MemoryRepo  # import-git's embedded fetch (M8)
+
+    assert MemoryRepo().object_store is not None, "dulwich organ missing"
+
+    click.echo("selftest ok: sqlite3, libipld codec, CIDv1, urllib, dulwich")
 
 
 def _context(config_dir: Path, data_dir: Path):

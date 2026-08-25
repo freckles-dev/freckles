@@ -22,8 +22,8 @@
 Built-ins are trusted core: they run in-process behind the same
 request/outcome document interface as spawned plugins, and — unlike
 plugins — may touch the store (source imports and output ingestion need
-it). Shipped so far: `import-values`, `command` (skeleton), `import-sops`
-(milestone 2); the remaining three built-ins land with their milestones.
+it). The set is complete (M8): `import-values`, `import-file-tree`,
+`import-sops`, `import-git`, `fetch-verify`, `command` — design.md §6.
 """
 
 from __future__ import annotations
