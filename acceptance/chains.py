@@ -28,6 +28,11 @@ across routes — the swap's ripple-stop depends on it.
 MISE_VERSION = "2026.8.12"
 MISE_SHA256 = "f2092b1e67f0abc8803d3be120dd2bc5b656dd99680ba3159f710e149da10d05"
 
+# mise's pipx backend needs uv (or pipx) findable — an acceptance finding:
+# the prerequisite is itself a tool the DAG installs, consumed by
+# tools/copier so the constructed PATH carries it.
+UV_VERSION = "0.9.28"
+
 PIXI_VERSION = "0.77.1"
 PIXI_SHA256 = "5115a89a9189a2e4e7e8d2f04236a7be586d8f6091dfc9ea869fb3c4a52b6935"
 
@@ -60,8 +65,13 @@ nodes:
   bootstrap:
     op: bootstrap-mise
     config: {{version: "{mise_version}", sha256: "{mise_sha256}"}}
+  tools/uv:
+    op: mise-install
+    config: {{package: uv, version: "{uv_version}"}}
   tools/copier:
     op: mise-install
+    consumes: [bootstrap, tool]
+    use: {{tool: tools/uv}}
     config: {{package: copier, version: "{copier_version}"}}
 """
 
@@ -109,6 +119,7 @@ _MECHANICS_TAIL = """\
   render/site:
     op: command
     consumes: [values, tool]
+    use: {{tool: tools/copier}}
     config:
       kind: file-tree
       effect: pure
@@ -145,6 +156,7 @@ def mise_chain(
         mise_install_sha256=mise_install_sha256,
         mise_version=MISE_VERSION,
         mise_sha256=MISE_SHA256,
+        uv_version=UV_VERSION,
         copier_version=COPIER_VERSION,
         state_dir=state_dir,
     )
