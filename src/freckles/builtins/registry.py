@@ -148,9 +148,14 @@ def _import_git(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
             "error": {"message": "config pins both ref and commit — choose one"},
         }
 
+    try:
+        auth = _git_auth(config)
+    except LookupError as error:
+        return {"schema": SCHEMA, "error": {"message": str(error)}}
+
     target = MemoryRepo()
     try:
-        client, path = get_transport_and_path(url, **_git_auth(config))
+        client, path = get_transport_and_path(url, **auth)
         refs = {
             bytes(name): bytes(sha)
             for name, sha in client.get_refs(cast(bytes, path)).refs.items()
@@ -238,8 +243,21 @@ def _import_git(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
 
 
 def _git_auth(config: dict[str, Any]) -> dict[str, Any]:
-    """Transport credentials — never part of any hashed document (M8)."""
-    return {}
+    """Transport credentials — never part of any hashed document (M8).
+
+    `token_env` names an environment variable of the freckles process; the
+    value flows as basic auth `token:<value>` and only the NAME is config
+    (and therefore hashed identity).
+    """
+    import os
+
+    name = config.get("token_env")
+    if not name:
+        return {}
+    token = os.environ.get(name)
+    if token is None:
+        raise LookupError(f"token_env {name!r} is not set in the freckles environment")
+    return {"username": "token", "password": token}
 
 
 def _import_sops(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:

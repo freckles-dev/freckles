@@ -104,3 +104,79 @@ def test_unreachable_repository_fails_cleanly(ctx, tmp_path):
 
     with pytest.raises(RunError, match="fetch failed"):
         run_node("sources/repo", git_node({"url": nowhere}), {}, ctx)
+
+
+# --- HTTPS-token: the first transport (M8) ----------------------------------
+
+LAB_TOKEN = "s3cr3t-git-t0k3n"
+
+
+@pytest.fixture
+def http_git_lab(git_lab, monkeypatch):
+    """The git lab behind smart HTTP, requiring basic auth `token:<token>`."""
+    import base64
+    import threading
+    from wsgiref.simple_server import WSGIRequestHandler, make_server
+
+    from dulwich.repo import Repo
+    from dulwich.server import DictBackend
+    from dulwich.web import make_wsgi_chain
+
+    lab_repo = git_lab({"app.yaml": "a: 1\n"})
+    opened = Repo(str(lab_repo.path))
+    smart_http = make_wsgi_chain(DictBackend({b"/": opened}))
+    expected = "Basic " + base64.b64encode(f"token:{LAB_TOKEN}".encode()).decode()
+
+    def guarded(environ, start_response):
+        if environ.get("HTTP_AUTHORIZATION") != expected:
+            start_response("401 Unauthorized", [("WWW-Authenticate", "Basic")])
+            return [b"auth required"]
+        return smart_http(environ, start_response)
+
+    class Quiet(WSGIRequestHandler):
+        def log_message(self, format: str, *args: object) -> None:  # noqa: A002
+            pass
+
+    server = make_server("127.0.0.1", 0, guarded, handler_class=Quiet)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    monkeypatch.setenv("LAB_GIT_TOKEN", LAB_TOKEN)
+    yield f"http://127.0.0.1:{server.server_port}/", lab_repo
+    server.shutdown()
+    opened.close()
+
+
+def test_token_env_authenticates_the_fetch(ctx, http_git_lab):
+    url, lab_repo = http_git_lab
+
+    outcome = run_node(
+        "sources/repo",
+        git_node({"url": url, "ref": "main", "token_env": "LAB_GIT_TOKEN"}),
+        {},
+        ctx,
+    )
+
+    assert outcome.claim["commit"] == lab_repo.head
+    # The token itself never enters any document — only the env var's NAME
+    # is config (and therefore hashed identity).
+    from freckles.documents import to_wire
+
+    assert LAB_TOKEN not in to_wire(outcome.claim)
+
+
+def test_missing_token_is_denied_cleanly(ctx, http_git_lab):
+    url, _ = http_git_lab
+
+    with pytest.raises(RunError, match="fetch failed"):
+        run_node("sources/repo", git_node({"url": url, "ref": "main"}), {}, ctx)
+
+
+def test_unset_token_env_names_the_variable(ctx, http_git_lab):
+    url, _ = http_git_lab
+
+    with pytest.raises(RunError, match="NO_SUCH_TOKEN_VAR"):
+        run_node(
+            "sources/repo",
+            git_node({"url": url, "token_env": "NO_SUCH_TOKEN_VAR"}),
+            {},
+            ctx,
+        )
