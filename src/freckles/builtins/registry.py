@@ -170,6 +170,7 @@ def _command(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
             "error": {
                 "message": f"command exited {completed.returncode}",
                 "detail": completed.stderr.decode(errors="replace"),
+                "exit_code": completed.returncode,
             },
         }
 

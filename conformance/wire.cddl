@@ -64,6 +64,8 @@ error = {
   error: {
     message: tstr,
     ? detail: tstr,
+    ? exit_code: int,        ; the wrapped process's real code (M3: the
+                             ; audit record refuses to bury it in prose)
     ? retryable: bool        ; hint only; freckles never auto-retries
   }
 }

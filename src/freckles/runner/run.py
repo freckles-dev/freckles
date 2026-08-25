@@ -46,9 +46,10 @@ from freckles.store import get_doc
 class RunError(Exception):
     """A run failed: non-zero exit, malformed output, or a broken contract."""
 
-    def __init__(self, message: str, detail: str = "") -> None:
+    def __init__(self, message: str, detail: str = "", exit_code: int = 1) -> None:
         super().__init__(message)
         self.detail = detail
+        self.exit_code = exit_code  # the wrapped process's real code when known
 
 
 def build_request(
@@ -129,7 +130,11 @@ def run_node(
 
     if "error" in outcome_doc:
         error = outcome_doc["error"]
-        raise RunError(error.get("message", "run failed"), error.get("detail", ""))
+        raise RunError(
+            error.get("message", "run failed"),
+            error.get("detail", ""),
+            error.get("exit_code", 1),
+        )
 
     claim = outcome_doc.get("claim")
     if not isinstance(claim, dict) or claim.get("kind") != node.produces:
@@ -188,11 +193,16 @@ def _process_adapter(
         detail = completed.stderr.decode(errors="replace")
         try:
             error = from_wire(completed.stdout)["error"]
-            raise RunError(error.get("message", "plugin failed"), detail)
+            raise RunError(
+                error.get("message", "plugin failed"),
+                detail,
+                error.get("exit_code", completed.returncode),
+            )
         except (ValueError, KeyError, TypeError):
             raise RunError(
                 f"plugin exited {completed.returncode} without a structured error",
                 detail,
+                completed.returncode,
             ) from None
     try:
         outcome = from_wire(completed.stdout)

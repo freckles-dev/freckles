@@ -24,7 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from freckles.state import AnnotationsIndex
+from freckles.state import AnnotationsIndex, AuditLog
 from freckles.store.base import StoreBackend
 
 
@@ -40,3 +40,4 @@ class RunContext:
     config_dir: Path
     freckles_version: str
     workspace_root: Path
+    audit: AuditLog | None = None  # every walk-driven run appends here

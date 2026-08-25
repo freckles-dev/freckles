@@ -14,7 +14,6 @@ import pytest
 from click.testing import CliRunner
 
 from freckles.cli import main
-from freckles.runner import RunError
 
 SENTINEL = "canary-XK9QVJ2ZWM4YT7-0d8f3a1c9b6e-entangled"
 ROTATED = "canary-ROTATED-PB5NHG8CWL2RD6-4e7a2f9c1d3b"
@@ -99,5 +98,9 @@ def test_the_vacuity_guard_bites(canary_world):
     (config_dir / "freckles.yaml").write_text(chain(digest(SENTINEL)))
     sops_lab.encrypt(config_dir / "secrets.sops.yaml", {"deploy_token": "not-it"})
 
-    with pytest.raises(RunError, match="exited 1"):
-        invoke("heal", "--yes")
+    result = invoke("heal", "--yes")
+
+    # Since M3 the surface honors the exit contract for run failures: the
+    # guard's nonzero exit lands as exit 1, not a leaked traceback.
+    assert result.exit_code == 1
+    assert "command exited 1" in result.stderr

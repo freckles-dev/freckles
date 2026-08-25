@@ -51,6 +51,14 @@ def _resolve_or_die(config_dir: Path, store):
         raise SystemExit(1) from error
 
 
+def _run_failed(error) -> SystemExit:
+    """A run failure is exit 1 on the surface (R6) — the record is in the audit log."""
+    click.echo(f"error: {error}", err=True)
+    if error.detail:
+        click.echo(error.detail.rstrip(), err=True)
+    return SystemExit(1)
+
+
 def _data_dir() -> Path:
     option = click.get_current_context().find_root().params.get("data_dir")
     if option is not None:
@@ -81,6 +89,7 @@ def heal(yes: bool) -> None:
     """Resolve the configuration in the current directory and heal it."""
     from freckles.heal import Checkpoint
     from freckles.heal import heal as heal_walk
+    from freckles.runner import RunError
 
     config_dir = Path.cwd()
     ctx, index = _context(config_dir, _data_dir())
@@ -106,7 +115,10 @@ def heal(yes: bool) -> None:
             return True
         return click.confirm("      proceed?", default=False)
 
-    report = heal_walk(resolution, config_dir.name, ctx, index, confirm)
+    try:
+        report = heal_walk(resolution, config_dir.name, ctx, index, confirm)
+    except RunError as error:
+        raise _run_failed(error) from error
     for name in report.healed:
         click.echo(f"  {name}  healed")
     if report.deployment_current:
@@ -124,6 +136,7 @@ def status(frozen: bool, check: bool) -> None:
     """Report currency: heal stale pures, name the exact checkpoint set (R2)."""
     from freckles.heal import frozen as frozen_walk
     from freckles.heal import heal as heal_walk
+    from freckles.runner import RunError
 
     def echo(message: str) -> None:
         if not check:
@@ -144,7 +157,10 @@ def status(frozen: bool, check: bool) -> None:
         )
         raise SystemExit(2)
 
-    report = heal_walk(resolution, config_dir.name, ctx, index, lambda _: False)
+    try:
+        report = heal_walk(resolution, config_dir.name, ctx, index, lambda _: False)
+    except RunError as error:
+        raise _run_failed(error) from error
     if report.healed:
         echo(f"pure heal: {', '.join(report.healed)}")
     if report.deployment_current:
@@ -258,7 +274,7 @@ def selftest() -> None:
 
 def _context(config_dir: Path, data_dir: Path):
     from freckles.runner import RunContext
-    from freckles.state import AnnotationsIndex, DerivationIndex, StateDb
+    from freckles.state import AnnotationsIndex, AuditLog, DerivationIndex, StateDb
     from freckles.store import SqliteStore
 
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -271,5 +287,6 @@ def _context(config_dir: Path, data_dir: Path):
         config_dir=config_dir,
         freckles_version=version,
         workspace_root=data_dir / "run",
+        audit=AuditLog(data_dir / "audit.jsonl"),
     )
     return ctx, DerivationIndex(db)

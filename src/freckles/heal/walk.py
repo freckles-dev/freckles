@@ -30,6 +30,7 @@ passes const-true, tests pass scripted answers.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from graphlib import TopologicalSorter
@@ -44,8 +45,8 @@ from freckles.documents import (
     ResolvedNode,
     encode,
 )
-from freckles.runner import RunContext, run_node
-from freckles.state import DerivationIndex
+from freckles.runner import RunContext, RunError, run_node
+from freckles.state import AuditRecord, DerivationIndex
 from freckles.store import get_doc, put_doc
 
 
@@ -279,9 +280,31 @@ def _run(
         if previous_annotations := ctx.annotations.get(previous):
             prior_ref["annotations"] = previous_annotations
 
-    outcome = run_node(name, node, request_inputs, ctx, prior=prior_ref)
+    # Resolved secret names for the audit record: plaintext reaches effectful
+    # requests only (§9 flow B), so pure runs resolve nothing.
+    secrets = (
+        [
+            entry["claim"]["name"]
+            for entry in request_inputs.values()
+            if entry["claim"].get("kind") == "secret"
+        ]
+        if node.effect == "effectful"
+        else []
+    )
+
+    started = time.monotonic()
+    try:
+        outcome = run_node(name, node, request_inputs, ctx, prior=prior_ref)
+    except RunError as error:
+        _record_run(
+            ctx, config_name, name, node, derivation_cid, None, secrets, started, error
+        )
+        raise
 
     claim_cid = put_doc(ctx.store, outcome.claim)
+    _record_run(
+        ctx, config_name, name, node, derivation_cid, claim_cid, secrets, started, None
+    )
     provenance_cid = put_doc(
         ctx.store, Provenance(derivation=derivation_cid, outcome=claim_cid).to_doc()
     )
@@ -294,3 +317,32 @@ def _run(
     if outcome.annotations:
         ctx.annotations.set(claim_cid, outcome.annotations)
     return claim_cid
+
+
+def _record_run(
+    ctx: RunContext,
+    config_name: str,
+    name: str,
+    node: ResolvedNode,
+    derivation_cid: Cid,
+    claim_cid: Cid | None,
+    secrets: list[str],
+    started: float,
+    error: RunError | None,
+) -> None:
+    if ctx.audit is None:
+        return
+    ctx.audit.append(
+        AuditRecord(
+            config=config_name,
+            node=name,
+            op=f"{_op_label(node)} @ freckles {ctx.freckles_version}",
+            derivation=str(derivation_cid),
+            claim=str(claim_cid) if claim_cid is not None else None,
+            ok=error is None,
+            exit_code=0 if error is None else error.exit_code,
+            duration_ms=int((time.monotonic() - started) * 1000),
+            secrets=secrets,
+            error=str(error) if error is not None else None,
+        )
+    )

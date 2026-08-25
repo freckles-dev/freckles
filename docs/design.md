@@ -194,7 +194,10 @@ content-addressed implementation it runs.
   request document on stdin (effective inputs as claim+annotation pairs,
   node config, workspace, `prior:` where applicable, runner-resolved
   secret plaintext where declared), outcome document or structured error
-  on stdout, exit code for success/failure. Never a Python-native API; a
+  on stdout, exit code for success/failure; the structured error may
+  carry the wrapped process's exit code (`exit_code`, amendment
+  2026-08-25, M3: the audit record wants the real code, not prose).
+  Never a Python-native API; a
   Python SDK is sugar. Plugins are language-agnostic and may pin their own
   runtimes (uv inline metadata). One generic `command` adapter wraps
   arbitrary commands.
