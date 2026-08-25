@@ -37,6 +37,11 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+# The SSH transport for import-git (M8 design act): dulwich's paramiko vendor,
+# kept out of the core install — HTTPS-token is the first transport.
+ssh = ["paramiko"]
+
 [project.scripts]
 freckles = "freckles.cli:main"
 
@@ -49,6 +54,8 @@ dev = [
     "devtools",
     "icecream",
     "multiformats[full]",
+    # The [ssh] extra's vendor, present in dev so its selection is testable.
+    "paramiko",
     "pre-commit",
     "pyrage-stubs>=1.4.0",
     "pyrefly",

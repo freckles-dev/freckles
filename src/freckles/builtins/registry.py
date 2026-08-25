@@ -156,11 +156,14 @@ def _import_git(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     target = MemoryRepo()
     try:
         client, path = get_transport_and_path(url, **auth)
+        _wire_ssh_vendor(client)
         refs = {
             bytes(name): bytes(sha)
             for name, sha in client.get_refs(cast(bytes, path)).refs.items()
             if sha is not None
         }
+    except LookupError as error:  # the [ssh] extra hint — keep it verbatim
+        return {"schema": SCHEMA, "error": {"message": str(error)}}
     # Any transport failure must become a structured error document, never a
     # traceback — and dulwich raises a transport-specific zoo.
     except Exception as error:  # noqa: BLE001
@@ -240,6 +243,25 @@ def _import_git(request: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
             "commit": commit_obj.id.decode(),
         },
     }
+
+
+def _wire_ssh_vendor(client: Any) -> None:
+    """SSH rides the paramiko vendor behind the [ssh] extra (M8 design act).
+
+    Never the host ssh: dulwich's default subprocess vendor is replaced, and
+    a missing paramiko fails with the install hint instead of a traceback.
+    """
+    from dulwich.client import SSHGitClient
+
+    if not isinstance(client, SSHGitClient):
+        return
+    try:
+        from freckles.builtins.ssh_vendor import ParamikoSSHVendor
+    except ImportError as error:
+        raise LookupError(
+            "SSH remotes need the ssh extra — install freckles[ssh]"
+        ) from error
+    client.ssh_vendor = ParamikoSSHVendor()
 
 
 def _git_auth(config: dict[str, Any]) -> dict[str, Any]:

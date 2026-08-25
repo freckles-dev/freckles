@@ -278,7 +278,11 @@ content-addressed implementation it runs.
   before any plugin can be acquired. Consequence: the git fetch ships
   inside freckles itself — a host `git` dependency would defeat the tier
   (and is avoidable: pinned-commit fetch needs no full libgit2;
-  pure-Python implementations cover it).
+  pure-Python implementations cover it). SSH vendor (amendment
+  2026-08-25, M8, the named design act): SSH remotes ride dulwich's
+  paramiko vendor behind the optional `ssh` extra — HTTPS-token stays
+  the first transport, and an SSH URL without the extra fails with the
+  install hint, never a traceback.
 
 ## 7. Storage and addressing
 

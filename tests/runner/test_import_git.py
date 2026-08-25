@@ -180,3 +180,45 @@ def test_unset_token_env_names_the_variable(ctx, http_git_lab):
             {},
             ctx,
         )
+
+
+# --- SSH: the paramiko vendor behind the [ssh] extra (M8 design act) --------
+
+
+def closed_port() -> int:
+    import socket
+
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return probe.getsockname()[1]  # freed on close — nothing listens
+
+
+def test_ssh_url_without_the_extra_names_the_install_hint(ctx, monkeypatch):
+    import sys
+
+    monkeypatch.setitem(sys.modules, "paramiko", None)
+    monkeypatch.setitem(sys.modules, "freckles.builtins.ssh_vendor", None)
+
+    with pytest.raises(RunError, match=r"freckles\[ssh\]"):
+        run_node(
+            "sources/repo",
+            git_node({"url": f"ssh://git@127.0.0.1:{closed_port()}/x.git"}),
+            {},
+            ctx,
+        )
+
+
+def test_ssh_url_rides_the_paramiko_vendor_to_the_transport(ctx):
+    """With the extra present the vendor engages, failing only at the socket.
+
+    A closed localhost port keeps it hermetic: the failure is transport-level,
+    never a missing dependency.
+    """
+    with pytest.raises(RunError, match="fetch failed") as caught:
+        run_node(
+            "sources/repo",
+            git_node({"url": f"ssh://git@127.0.0.1:{closed_port()}/x.git"}),
+            {},
+            ctx,
+        )
+    assert "freckles[ssh]" not in str(caught.value)
