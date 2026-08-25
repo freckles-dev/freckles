@@ -193,7 +193,9 @@ def show(node: str) -> None:
         raise SystemExit(1)
 
     claim = get_doc(ctx.store, claim_cid)
-    click.echo(f"{node}   {claim.get('kind', '?')}   {claim_cid}")
+    reason = ctx.annotations.distrusted(claim_cid)
+    trust = "trusted" if reason is None else f"distrusted ({reason}) — node stale"
+    click.echo(f"{node}   {claim.get('kind', '?')}   {claim_cid}   {trust}")
     click.echo("claim")
     for key, value in claim.items():
         if key != "schema":

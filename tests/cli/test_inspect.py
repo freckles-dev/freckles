@@ -72,3 +72,24 @@ def test_store_cat_bad_cid_exits_1(world):
 
     assert result.exit_code == 1
     assert "error" in result.stderr
+
+
+def test_show_names_the_trust_state(world):
+    """Scene 7's trust column: trusted by default, distrusted with the reason."""
+    from freckles.state import AnnotationsIndex, StateDb
+    from freckles.store import SqliteStore
+
+    world.invoke("heal", "--yes")
+    assert "trusted" in world.invoke("show", "deploy/site").output
+
+    store = SqliteStore(world.data_dir / "store.sqlite")
+    claim = store.get_ref("cfg/demo/nodes/deploy/site")
+    assert claim is not None
+    store.close()
+    AnnotationsIndex(StateDb(world.data_dir / "state.sqlite")).distrust(
+        claim, "endpoint unreachable"
+    )
+
+    shown = world.invoke("show", "deploy/site").output
+    assert "distrusted" in shown
+    assert "endpoint unreachable" in shown
