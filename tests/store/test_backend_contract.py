@@ -1,20 +1,21 @@
 """The backend contract suite: one parametrized suite every store backend passes.
 
-sqlite is the only v1 backend today; the folder backend joins the
-`backend_factory` parametrization when its milestone lands ("Testing
-strategy"). gc contract tests join with the gc milestone.
+Both v1 backends run it: sqlite (default) and folder (inspection).
+gc contract tests join with the gc milestone.
 """
 
 import pytest
 
 from freckles.documents import cid_for_blob
-from freckles.store import SqliteStore, get_doc, put_blob, put_doc
+from freckles.store import FolderStore, SqliteStore, get_doc, put_blob, put_doc
 
 
-@pytest.fixture(params=["sqlite"])
+@pytest.fixture(params=["sqlite", "folder"])
 def backend(request, tmp_path):
     if request.param == "sqlite":
         return SqliteStore(tmp_path / "store.sqlite")
+    if request.param == "folder":
+        return FolderStore(tmp_path / "store")
     raise AssertionError(f"unknown backend {request.param}")
 
 

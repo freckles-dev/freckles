@@ -25,9 +25,11 @@ backends stay codec-ignorant.
 
 from freckles.documents import Cid, cid_for_blob, decode, encode
 from freckles.store.base import StoreBackend
+from freckles.store.folder import FolderStore
 from freckles.store.sqlite import SqliteStore
 
 __all__ = [
+    "FolderStore",
     "SqliteStore",
     "StoreBackend",
     "get_doc",
