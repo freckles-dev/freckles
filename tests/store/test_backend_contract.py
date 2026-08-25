@@ -5,6 +5,8 @@ Covers block/ref semantics, reopen persistence, and gc (refs as the only
 roots, extract_links traversal, two-phase unreferenced-since grace).
 """
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 
 from freckles.defaults import GC_GRACE
@@ -98,6 +100,22 @@ def test_gc_first_pass_keeps_unreachable_within_grace(backend):
     assert (report.kept, report.collected) == (1, 0)
     assert report.freed_bytes == 0
     assert backend.has(orphan)  # grace holds it
+
+
+def test_gc_collects_unreferenced_past_grace(backend):
+    orphan = put_blob(backend, b"orphan bytes")
+    kept_cid = put_blob(backend, b"rooted")
+    backend.set_ref("cfg/demo/nodes/keep", kept_cid)
+    t0 = datetime(2026, 8, 25, tzinfo=UTC)
+
+    backend.gc(extract_links, GC_GRACE, now=t0)  # marks the orphan
+    report = backend.gc(extract_links, GC_GRACE, now=t0 + timedelta(days=15))
+
+    assert report.collected == 1
+    assert report.kept == 0
+    assert report.freed_bytes == len(b"orphan bytes")
+    assert not backend.has(orphan)
+    assert backend.has(kept_cid)
 
 
 def test_persistence_across_reopen(backend_factory):

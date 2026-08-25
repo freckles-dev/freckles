@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 from freckles.documents import Cid
@@ -47,6 +47,57 @@ class GcReport:
     kept: int
     collected: int
     freed_bytes: int
+
+
+def gc_pass(
+    backend: StoreBackend,
+    extract_links: ExtractLinks,
+    grace: timedelta,
+    now: datetime | None,
+    *,
+    marks: dict[Cid, datetime],
+    set_mark: Callable[[Cid, datetime], None],
+    clear_mark: Callable[[Cid], None],
+    delete_block: Callable[[Cid], int],
+) -> GcReport:
+    """The two-phase pass both backends share; they supply mark + delete.
+
+    A block's grace clock starts when a pass first sees it unreferenced,
+    not when it was added — a claim superseded after months still gets its
+    full grace window. Reachable again means the mark is cleared.
+    """
+    current = now if now is not None else datetime.now(UTC)
+    roots = backend.refs()
+    reachable = compute_reachable(list(roots.values()), backend.get, extract_links)
+    stored = backend.cids()
+    unreferenced = [cid for cid in stored if cid not in reachable]
+    unreferenced_set = set(unreferenced)
+
+    for cid in marks:
+        if cid not in unreferenced_set:
+            clear_mark(cid)
+
+    kept = collected = freed = 0
+    for cid in unreferenced:
+        since = marks.get(cid)
+        if since is None:
+            set_mark(cid, current)
+            kept += 1
+        elif current - since >= grace:
+            freed += delete_block(cid)
+            clear_mark(cid)
+            collected += 1
+        else:
+            kept += 1
+
+    return GcReport(
+        roots=len(roots),
+        reachable=len(stored) - len(unreferenced),
+        unreferenced=len(unreferenced),
+        kept=kept,
+        collected=collected,
+        freed_bytes=freed,
+    )
 
 
 def compute_reachable(

@@ -26,7 +26,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from freckles.documents import Cid
-from freckles.store.base import ExtractLinks, GcReport, compute_reachable
+from freckles.store.base import ExtractLinks, GcReport, gc_pass
 
 
 class SqliteStore:
@@ -41,6 +41,9 @@ class SqliteStore:
             )
             self._conn.execute(
                 "CREATE TABLE IF NOT EXISTS refs (name TEXT PRIMARY KEY, cid TEXT)"
+            )
+            self._conn.execute(
+                "CREATE TABLE IF NOT EXISTS gc_marks (cid TEXT PRIMARY KEY, since TEXT)"
             )
 
     def put(self, cid: Cid, data: bytes) -> None:
@@ -92,16 +95,36 @@ class SqliteStore:
         grace: timedelta,
         now: datetime | None = None,
     ) -> GcReport:
-        roots = self.refs()
-        reachable = compute_reachable(list(roots.values()), self.get, extract_links)
-        unreferenced = [cid for cid in self.cids() if cid not in reachable]
-        return GcReport(
-            roots=len(roots),
-            reachable=len(self.cids()) - len(unreferenced),
-            unreferenced=len(unreferenced),
-            kept=len(unreferenced),
-            collected=0,
-            freed_bytes=0,
+        def set_mark(cid: Cid, since: datetime) -> None:
+            with self._conn:
+                self._conn.execute(
+                    "INSERT OR REPLACE INTO gc_marks (cid, since) VALUES (?, ?)",
+                    (str(cid), since.isoformat()),
+                )
+
+        def clear_mark(cid: Cid) -> None:
+            with self._conn:
+                self._conn.execute("DELETE FROM gc_marks WHERE cid = ?", (str(cid),))
+
+        def delete_block(cid: Cid) -> int:
+            size = len(self.get(cid))
+            with self._conn:
+                self._conn.execute("DELETE FROM blocks WHERE cid = ?", (str(cid),))
+            return size
+
+        marks = {
+            Cid.parse(cid): datetime.fromisoformat(since)
+            for cid, since in self._conn.execute("SELECT cid, since FROM gc_marks")
+        }
+        return gc_pass(
+            self,
+            extract_links,
+            grace,
+            now,
+            marks=marks,
+            set_mark=set_mark,
+            clear_mark=clear_mark,
+            delete_block=delete_block,
         )
 
     def close(self) -> None:

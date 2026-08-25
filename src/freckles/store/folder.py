@@ -31,7 +31,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from freckles.documents import Cid
-from freckles.store.base import ExtractLinks, GcReport, compute_reachable
+from freckles.store.base import ExtractLinks, GcReport, gc_pass
 
 
 class FolderStore:
@@ -41,8 +41,10 @@ class FolderStore:
         self._root = Path(path)
         self._blocks = self._root / "blocks"
         self._refs = self._root / "refs"
+        self._marks = self._root / "gc"
         self._blocks.mkdir(parents=True, exist_ok=True)
         self._refs.mkdir(parents=True, exist_ok=True)
+        self._marks.mkdir(parents=True, exist_ok=True)
 
     def put(self, cid: Cid, data: bytes) -> None:
         target = self._blocks / str(cid)
@@ -86,16 +88,31 @@ class FolderStore:
         grace: timedelta,
         now: datetime | None = None,
     ) -> GcReport:
-        roots = self.refs()
-        reachable = compute_reachable(list(roots.values()), self.get, extract_links)
-        unreferenced = [cid for cid in self.cids() if cid not in reachable]
-        return GcReport(
-            roots=len(roots),
-            reachable=len(self.cids()) - len(unreferenced),
-            unreferenced=len(unreferenced),
-            kept=len(unreferenced),
-            collected=0,
-            freed_bytes=0,
+        def set_mark(cid: Cid, since: datetime) -> None:
+            self._write_atomic(self._marks / str(cid), since.isoformat().encode())
+
+        def clear_mark(cid: Cid) -> None:
+            (self._marks / str(cid)).unlink(missing_ok=True)
+
+        def delete_block(cid: Cid) -> int:
+            target = self._blocks / str(cid)
+            size = target.stat().st_size
+            target.unlink()
+            return size
+
+        marks = {
+            Cid.parse(p.name): datetime.fromisoformat(p.read_text())
+            for p in self._marks.iterdir()
+        }
+        return gc_pass(
+            self,
+            extract_links,
+            grace,
+            now,
+            marks=marks,
+            set_mark=set_mark,
+            clear_mark=clear_mark,
+            delete_block=delete_block,
         )
 
     def close(self) -> None:
